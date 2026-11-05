@@ -47,7 +47,7 @@ function Splash() {
   return (
     <div className="grid min-h-dvh place-items-center bg-white px-6 text-ink">
       <div className="flex flex-col items-center text-center">
-        <img src="/meditrack-icon.png" alt="MediTrack" className="mb-5 size-28 object-contain" />
+        <img src="/meditrack-icon.jpg" alt="MediTrack" className="mb-5 size-28 object-contain" />
         <p className="font-display text-4xl">MediTrack</p>
       </div>
     </div>
