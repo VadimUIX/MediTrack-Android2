@@ -111,7 +111,8 @@ export function MedForm({ id }: { id?: string }) {
   const [errors, setErrors] = useState<string[]>([]);
   const [askDelete, setAskDelete] = useState(false);
   const [nameFocused, setNameFocused] = useState(false);
-  const savedNames = useMedi((s) => s.medications.map((m) => m.name));
+  const savedMedications = useMedi((s) => s.medications);
+  const savedNames = useMemo(() => savedMedications.map((m) => m.name), [savedMedications]);
   const nameSuggestions = useMemo(() => {
     const query = draft.name.trim().toLocaleLowerCase();
     if (query.length < 2) return [];
