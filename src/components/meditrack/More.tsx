@@ -11,7 +11,7 @@ import type { Key } from "@/lib/meditrack/i18n";
 import { ChevronRight, Fingerprint, LockKeyhole, Moon, Shield, Sun, Monitor } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { getNotifPermission, requestNotifPermission, type NotifPerm } from "@/lib/native-notify";
+import { getNotifPermission, isNative, requestNotifPermission, showNotification, type NotifPerm } from "@/lib/native-notify";
 
 export function More() {
   const tr = useT();
@@ -300,7 +300,7 @@ export function Settings() {
           {perm === "granted" ? tr("notifGranted") : perm === "denied" ? tr("notifDenied") : tr("notifDefault")}
         </p>
         <Btn variant="soft" onClick={() => void askNotif()}>{tr("allowNotif")}</Btn>
-        <Btn variant="ghost" onClick={() => { armAudio(); if (notif.sound) beep(); if (notif.vibrate) navigator.vibrate?.(80); toast(tr("testSent")); }}>{tr("testNotif")}</Btn>
+        <Btn variant="ghost" onClick={() => { if (isNative()) void showNotification(tr("remindTitle"), tr("testSent"), "meditrack-test-sound"); else { armAudio(); if (notif.sound) beep(); if (notif.vibrate) navigator.vibrate?.(80); } toast(tr("testSent")); }}>{tr("testNotif")}</Btn>
       </section>
       <section className="grid gap-3">
         <h2 className="font-display text-2xl"><LockKeyhole className="mr-2 inline size-5" />{tr("pin")}</h2>
