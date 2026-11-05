@@ -122,7 +122,7 @@ export function Stats() {
                 key={date}
                 type="button"
                 className={`heat heat-${level}`}
-                aria-label={`${date} ${tr(`legend_${level === "wait" ? "wait" : level === "none" ? "none" : level === "good" ? "good" : level === "ok" ? "ok" : level === "mid" ? "mid" : "bad"}` as Key)}`}
+                aria-label={`${date} ${tr(heatLegendKey(level))}`}
                 onClick={() => go({ name: "today", date })}
               />
             );
@@ -197,6 +197,17 @@ export function Stats() {
   );
 }
 
+function heatLegendKey(level: Heat): Key {
+  const keys: Record<Heat, Key> = {
+    good: "legendGood",
+    ok: "legendOk",
+    mid: "legendMid",
+    bad: "legendBad",
+    wait: "legendWait",
+    none: "legendNone",
+  };
+  return keys[level];
+}
 function Stat({ n, label }: { n: number; label: string }) {
   return (
     <div className="card">
