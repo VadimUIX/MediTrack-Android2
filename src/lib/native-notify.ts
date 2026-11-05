@@ -43,7 +43,7 @@ export async function showNotification(title: string, body: string, key: string)
   if (isNative()) {
     try {
       await LocalNotifications.schedule({
-        notifications: [{ id: hashId(key + Date.now()), title, body }],
+        notifications: [{ id: hashId(key + Date.now()), title, body, channelId: "meditrack_dose_alerts_v2" }],
       });
     } catch {
       /* ignore */
