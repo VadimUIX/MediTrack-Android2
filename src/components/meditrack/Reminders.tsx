@@ -4,7 +4,7 @@ import { atDateTime, inQuiet, todayISO } from "@/lib/meditrack/dates";
 import { buildDay, takenKind, type BuiltSlot } from "@/lib/meditrack/engine";
 import { doseText } from "@/lib/meditrack/format";
 import { useMedi } from "@/lib/meditrack/store";
-import { showNotification } from "@/lib/native-notify";
+import { isNative, showNotification } from "@/lib/native-notify";
 import { useEffect, useState } from "react";
 
 const STORE = "meditrack-reminder-fires";
@@ -62,12 +62,14 @@ export function Reminders() {
           const canFire = rec.n <= notif.repeatCount && (!rec.at || now.getTime() - rec.at >= wait);
           if (canFire) {
             fires[key] = { n: rec.n + 1, at: now.getTime() };
-            if (notif.sound) beep();
-            if (notif.vibrate && typeof navigator !== "undefined") navigator.vibrate?.(120);
+            if (!isNative() && notif.sound) beep();
+            if (!isNative() && notif.vibrate && typeof navigator !== "undefined") navigator.vibrate?.(120);
             void showNotification(
               tr("remindTitle"),
               tr("notifBody", { name: `${profile.name}: ${slot.medication.name}`, dose: doseText(slot.medication, lang), time: slot.time }),
               key,
+              notif.sound,
+              notif.vibrate,
             );
           }
           if ((fires[key]?.n ?? rec.n) <= notif.repeatCount + 1) due.push(slot);
