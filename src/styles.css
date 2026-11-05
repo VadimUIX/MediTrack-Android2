@@ -108,7 +108,7 @@ html[data-scale="xl"] { font-size: 22px; }
   background: var(--surface);
   box-shadow: var(--shadow);
 }
-.spine { height: 0.45rem; background: var(--primary); }
+.spine { display: none; }
 .font-display { font-family: var(--font-display); }
 
 .card {
@@ -173,6 +173,34 @@ html[data-scale="xl"] { font-size: 22px; }
   font: inherit;
 }
 .field-search { padding-left: 2.6rem; }
+.med-suggestions {
+  display: grid;
+  max-height: min(13rem, 30dvh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  margin-bottom: 0.45rem;
+  border: 1px solid var(--line);
+  border-radius: 0.9rem;
+  background: var(--card);
+  box-shadow: var(--shadow);
+}
+.med-suggestion {
+  min-height: 2.85rem;
+  padding: 0.55rem 0.8rem;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink);
+  text-align: left;
+  font: inherit;
+}
+.med-suggestion:last-child { border-bottom: 0; }
+.med-suggestion:focus-visible, .med-suggestion:active {
+  outline: none;
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
 textarea.field { padding-top: 0.7rem; }
 .label { font-weight: 650; }
 .choice {
