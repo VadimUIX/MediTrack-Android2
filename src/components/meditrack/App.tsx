@@ -45,9 +45,9 @@ export function App() {
 
 function Splash() {
   return (
-    <div className="grid min-h-dvh place-items-center bg-bg px-6 text-ink">
+    <div className="grid min-h-dvh place-items-center bg-white px-6 text-ink">
       <div className="flex flex-col items-center text-center">
-        <img src="/meditrack-icon.svg" alt="" className="mb-5 size-28" />
+        <img src="/meditrack-icon.png" alt="MediTrack" className="mb-5 size-28 object-contain" />
         <p className="font-display text-4xl">MediTrack</p>
       </div>
     </div>
