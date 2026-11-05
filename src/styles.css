@@ -99,6 +99,7 @@ html[data-scale="xl"] { font-size: 22px; }
 }
 
 .sheet {
+  padding-top: calc(env(safe-area-inset-top, 0px) + 10px);
   margin: 0 auto;
   display: flex;
   min-height: 100dvh;
