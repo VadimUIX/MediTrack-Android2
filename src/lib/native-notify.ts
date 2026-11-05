@@ -39,11 +39,11 @@ function hashId(key: string): number {
   return Math.abs(h) % 2147483647 || 1;
 }
 
-export async function showNotification(title: string, body: string, key: string): Promise<void> {
+export async function showNotification(title: string, body: string, key: string, sound = true, vibrate = true): Promise<void> {
   if (isNative()) {
     try {
       await LocalNotifications.schedule({
-        notifications: [{ id: hashId(key + Date.now()), title, body, channelId: "meditrack_dose_alerts_v2" }],
+        notifications: [{ id: hashId(key + Date.now()), title, body, channelId: sound ? (vibrate ? "meditrack_dose_sound_vibrate_v3" : "meditrack_dose_sound_v3") : (vibrate ? "meditrack_dose_vibrate_v3" : "meditrack_dose_silent_v3") }],
       });
     } catch {
       /* ignore */
