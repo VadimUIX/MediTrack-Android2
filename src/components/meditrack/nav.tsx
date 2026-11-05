@@ -30,9 +30,8 @@ export function useNav(): Nav {
   return ctx;
 }
 
-export function tabOf(screen: Screen): "today" | "meds" | "stats" | "more" {
+export function tabOf(screen: Screen): "today" | "meds" | "more" {
   if (screen.name === "meds" || screen.name === "med") return "meds";
-  if (screen.name === "stats" || screen.name === "history" || screen.name === "report") return "stats";
   if (screen.name === "today") return "today";
   return "more";
 }
