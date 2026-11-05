@@ -1,0 +1,8 @@
+{
+	"appId": "app.meditrack.diary",
+	"appName": "Лекарственный дневник",
+	"webDir": "dist/client",
+	"android": {
+		"allowMixedContent": false
+	}
+}
