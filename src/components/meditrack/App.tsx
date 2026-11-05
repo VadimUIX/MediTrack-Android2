@@ -49,7 +49,6 @@ function Splash() {
       <div className="flex flex-col items-center text-center">
         <img src="/meditrack-icon.svg" alt="" className="mb-5 size-28" />
         <p className="font-display text-4xl">MediTrack</p>
-        <p className="mt-2 text-muted">Лекарственный дневник</p>
       </div>
     </div>
   );
