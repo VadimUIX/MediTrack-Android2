@@ -46,7 +46,7 @@ jobs:
         run: npx tsc --noEmit
 
       - name: Medication schedule tests
-        run: node --experimental-strip-types --test src/lib/meditrack/engine.test.ts
+        run: node --experimental-strip-types --test src/lib/meditrack/engine.test.ts scripts/sign-out-plan.test.mjs
 
       - name: Build mobile web app
         run: npm run build:mobile
