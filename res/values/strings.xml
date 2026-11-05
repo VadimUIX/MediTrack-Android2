@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Лекарственный дневник</string>
+    <string name="title_activity_main">Лекарственный дневник</string>
+    <string name="package_name">app.meditrack.diary</string>
+    <string name="custom_url_scheme">app.meditrack.diary</string>
+</resources>
