@@ -38,6 +38,8 @@ public class MainActivity extends BridgeActivity {
                     .setUsage(AudioAttributes.USAGE_NOTIFICATION)
                     .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
                     .build());
+        } else {
+            channel.setSound(null, null);
         }
         manager.createNotificationChannel(channel);
     }
