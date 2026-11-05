@@ -1,4 +1,4 @@
-import { History, Report } from "@/components/meditrack/Stats";
+import { History, Report } from "@/components/meditrack/HistoryReport";
 import { About, Backup, Lock, More, Privacy, ProfileForm, Profiles, Settings } from "@/components/meditrack/More";
 import { MedForm } from "@/components/meditrack/MedForm";
 import { Meds } from "@/components/meditrack/Meds";
