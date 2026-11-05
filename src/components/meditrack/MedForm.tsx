@@ -21,7 +21,7 @@ import { Btn, Field, Modal, useLang, useT } from "@/components/meditrack/ui";
 import { useNav } from "@/components/meditrack/nav";
 import { weekdayOrder } from "@/lib/meditrack/format";
 import type { Key } from "@/lib/meditrack/i18n";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 type Kind = DayRule["kind"];
@@ -110,6 +110,20 @@ export function MedForm({ id }: { id?: string }) {
   const [draft, setDraft] = useState<Draft>(() => fromMed(existing, todayISO()));
   const [errors, setErrors] = useState<string[]>([]);
   const [askDelete, setAskDelete] = useState(false);
+  const [nameFocused, setNameFocused] = useState(false);
+  const savedNames = useMedi((s) => s.medications.map((m) => m.name));
+  const nameSuggestions = useMemo(() => {
+    const query = draft.name.trim().toLocaleLowerCase();
+    if (query.length < 2) return [];
+    return [...new Set([...savedNames, ...CATALOG])]
+      .filter((name) => name.toLocaleLowerCase().includes(query))
+      .sort((a, b) => {
+        const aStarts = a.toLocaleLowerCase().startsWith(query) ? 0 : 1;
+        const bStarts = b.toLocaleLowerCase().startsWith(query) ? 0 : 1;
+        return aStarts - bStarts || a.localeCompare(b, lang);
+      })
+      .slice(0, 8);
+  }, [draft.name, savedNames, lang]);
 
   function patch(p: Partial<Draft>) {
     setDraft((d) => ({ ...d, ...p }));
@@ -228,12 +242,44 @@ export function MedForm({ id }: { id?: string }) {
         </div>
       ) : null}
       <Field label={tr("fieldName")}>
-        <input className="field" list="med-catalog" value={draft.name} onChange={(e) => patch({ name: e.target.value })} required />
-        <datalist id="med-catalog">
-          {CATALOG.map((name) => (
-            <option key={name} value={name} />
-          ))}
-        </datalist>
+        {nameFocused && nameSuggestions.length > 0 ? (
+          <div className="med-suggestions" role="listbox" aria-label={tr("fieldName")}>
+            {nameSuggestions.map((name) => (
+              <button
+                key={name}
+                type="button"
+                role="option"
+                aria-selected={draft.name === name}
+                className="med-suggestion"
+                onPointerDown={(event) => event.preventDefault()}
+                onClick={() => {
+                  patch({ name });
+                  setNameFocused(false);
+                }}
+              >
+                {name}
+              </button>
+            ))}
+          </div>
+        ) : null}
+        <input
+          className="field"
+          value={draft.name}
+          onChange={(e) => patch({ name: e.target.value })}
+          onFocus={() => setNameFocused(true)}
+          onBlur={() => setNameFocused(false)}
+          onKeyDown={(event) => {
+            if (event.key === "Escape") setNameFocused(false);
+            if (event.key === "ArrowDown" && nameSuggestions.length) {
+              event.preventDefault();
+              (document.querySelector(".med-suggestion") as HTMLButtonElement | null)?.focus();
+            }
+          }}
+          role="combobox"
+          aria-autocomplete="list"
+          aria-expanded={nameFocused && nameSuggestions.length > 0}
+          required
+        />
       </Field>
       <Field label={tr("fieldForm")}>
         <select className="field" value={draft.form} onChange={(e) => patch({ form: e.target.value as MedForm })}>
