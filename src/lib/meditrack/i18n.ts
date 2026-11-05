@@ -430,7 +430,8 @@ const dict = {
 export type Key = keyof typeof dict;
 
 export function t(lang: Lang, key: Key, vars?: Record<string, string | number>): string {
-  const raw = dict[key][lang];
+  const entry = dict[key];
+  const raw = entry?.[lang] ?? entry?.ru ?? String(key);
   if (!vars) return raw;
   return raw.replace(/\{(\w+)\}/g, (_, k: string) => String(vars[k] ?? ""));
 }
