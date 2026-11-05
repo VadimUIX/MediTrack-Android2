@@ -1,4 +1,4 @@
-import { History, Report, Stats } from "@/components/meditrack/Stats";
+import { History, Report } from "@/components/meditrack/Stats";
 import { About, Backup, Lock, More, Privacy, ProfileForm, Profiles, Settings } from "@/components/meditrack/More";
 import { MedForm } from "@/components/meditrack/MedForm";
 import { Meds } from "@/components/meditrack/Meds";
@@ -8,7 +8,7 @@ import { NavProvider, tabOf, useNav } from "@/components/meditrack/nav";
 import { useT } from "@/components/meditrack/ui";
 import { armAudio } from "@/components/meditrack/sound";
 import { useMedi } from "@/lib/meditrack/store";
-import { CalendarDays, ChartColumn, ChevronLeft, Menu, Pill } from "lucide-react";
+import { CalendarDays, ChevronLeft, Menu, Pill } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Toaster } from "sonner";
 
@@ -46,8 +46,9 @@ export function App() {
 function Splash() {
   return (
     <div className="grid min-h-dvh place-items-center bg-bg px-6 text-ink">
-      <div className="text-center">
-        <p className="font-display text-4xl">Дневник</p>
+      <div className="flex flex-col items-center text-center">
+        <img src="/meditrack-icon.svg" alt="" className="mb-5 size-28" />
+        <p className="font-display text-4xl">MediTrack</p>
         <p className="mt-2 text-muted">Лекарственный дневник</p>
       </div>
     </div>
@@ -82,7 +83,7 @@ function Shell() {
 function Frame() {
   const tr = useT();
   const { screen, back, reset } = useNav();
-  const rooted = screen.name === "today" || screen.name === "meds" || screen.name === "stats" || screen.name === "more";
+  const rooted = screen.name === "today" || screen.name === "meds" || screen.name === "more";
   const tab = tabOf(screen);
   const titles: Record<string, string> = {
     med: tr(screen.name === "med" && screen.id ? "formEdit" : "formNew"),
@@ -111,7 +112,6 @@ function Frame() {
         {screen.name === "today" ? <Today /> : null}
         {screen.name === "meds" ? <Meds /> : null}
         {screen.name === "med" ? <MedForm id={screen.id} /> : null}
-        {screen.name === "stats" ? <Stats /> : null}
         {screen.name === "history" ? <History /> : null}
         {screen.name === "report" ? <Report /> : null}
         {screen.name === "more" ? <More /> : null}
@@ -126,7 +126,6 @@ function Frame() {
       <nav className="tabbar no-print" aria-label={tr("moreTitle")}>
         <Tab icon={<CalendarDays />} label={tr("navToday")} on={tab === "today"} onClick={() => reset({ name: "today" })} />
         <Tab icon={<Pill />} label={tr("navMeds")} on={tab === "meds"} onClick={() => reset({ name: "meds" })} />
-        <Tab icon={<ChartColumn />} label={tr("navStats")} on={tab === "stats"} onClick={() => reset({ name: "stats" })} />
         <Tab icon={<Menu />} label={tr("navMore")} on={tab === "more"} onClick={() => reset({ name: "more" })} />
       </nav>
       <Toaster position="top-center" toastOptions={{ className: "font-sans", style: { background: "var(--surface)", color: "var(--ink)", border: "1px solid var(--line)" } }} />
