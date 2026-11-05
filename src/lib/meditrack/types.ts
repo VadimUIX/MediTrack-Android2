@@ -134,7 +134,6 @@ export type Screen =
   | { name: "today"; date?: string }
   | { name: "meds" }
   | { name: "med"; id?: string }
-  | { name: "stats" }
   | { name: "history" }
   | { name: "more" }
   | { name: "profiles" }
