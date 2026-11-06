@@ -14,9 +14,6 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 35
-    # Release signing is enabled only when the four app-signing secrets are present.
-    env:
-      SIGNING_CONFIGURED: ${{ secrets.ANDROID_APP_KEYSTORE_BASE64 != '' && secrets.ANDROID_APP_KEYSTORE_PASSWORD != '' && secrets.ANDROID_APP_KEY_ALIAS != '' && secrets.ANDROID_APP_KEY_PASSWORD != '' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -72,6 +69,20 @@ jobs:
       - name: Sync Capacitor Android project
         run: npx cap sync android
 
+      - name: Check release signing configuration
+        id: signing_check
+        run: |
+          if [ -n "$ANDROID_APP_KEYSTORE_BASE64" ] && [ -n "$ANDROID_APP_KEYSTORE_PASSWORD" ] && [ -n "$ANDROID_APP_KEY_ALIAS" ] && [ -n "$ANDROID_APP_KEY_PASSWORD" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+          fi
+        env:
+          ANDROID_APP_KEYSTORE_BASE64: ${{ secrets.ANDROID_APP_KEYSTORE_BASE64 }}
+          ANDROID_APP_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_APP_KEYSTORE_PASSWORD }}
+          ANDROID_APP_KEY_ALIAS: ${{ secrets.ANDROID_APP_KEY_ALIAS }}
+          ANDROID_APP_KEY_PASSWORD: ${{ secrets.ANDROID_APP_KEY_PASSWORD }}
+
       - name: Build debug APK
         working-directory: android
         run: |
@@ -79,7 +90,7 @@ jobs:
           ./gradlew assembleDebug --no-daemon
 
       - name: Prepare release signing key
-        if: env.SIGNING_CONFIGURED == 'true' && github.event_name != 'pull_request'
+        if: steps.signing_check.outputs.configured == 'true' && github.event_name != 'pull_request'
         run: |
           echo "$ANDROID_APP_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/meditrack-app-signing.jks"
           echo "ANDROID_APP_KEYSTORE_PATH=$RUNNER_TEMP/meditrack-app-signing.jks" >> "$GITHUB_ENV"
@@ -97,17 +108,24 @@ jobs:
           ANDROID_APP_KEY_ALIAS: ${{ secrets.ANDROID_APP_KEY_ALIAS }}
           ANDROID_APP_KEY_PASSWORD: ${{ secrets.ANDROID_APP_KEY_PASSWORD }}
 
+      - name: Prepare APK filenames
+        run: |
+          cp android/app/build/outputs/apk/debug/app-debug.apk android/app/build/outputs/apk/debug/MediTrack-debug.apk
+          if [ -f android/app/build/outputs/apk/release/app-release.apk ]; then
+            cp android/app/build/outputs/apk/release/app-release.apk android/app/build/outputs/apk/release/MediTrack.apk
+          fi
+
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: meditrack-debug-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          name: MediTrack-debug
+          path: android/app/build/outputs/apk/debug/MediTrack-debug.apk
           if-no-files-found: error
 
       - name: Upload signed release APK
         if: env.SIGNING_CONFIGURED == 'true' && github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
-          name: meditrack-release-apk
-          path: android/app/build/outputs/apk/release/app-release.apk
+          name: MediTrack
+          path: android/app/build/outputs/apk/release/MediTrack.apk
           if-no-files-found: error
