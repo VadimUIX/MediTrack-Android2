@@ -10,6 +10,7 @@ import {
   SWATCHES,
   uid,
   type CourseStatus,
+  type GrlsReference,
   type DayRule,
   type InstructionId,
   type MedForm,
@@ -21,7 +22,8 @@ import { Btn, Field, Modal, useLang, useT } from "@/components/meditrack/ui";
 import { useNav } from "@/components/meditrack/nav";
 import { weekdayOrder } from "@/lib/meditrack/format";
 import type { Key } from "@/lib/meditrack/i18n";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { searchGrls, type GrlsItem } from "@/lib/meditrack/grls";
 import { toast } from "sonner";
 
 type Kind = DayRule["kind"];
@@ -56,6 +58,7 @@ type Draft = {
   windowMin: number;
   critical: boolean;
   photoDataUrl?: string;
+  grls?: GrlsReference;
 };
 
 function num(v: string): number {
@@ -94,6 +97,7 @@ function fromMed(m: Medication | undefined, today: string): Draft {
     windowMin: m?.schedule.windowMin ?? 30,
     critical: m?.critical ?? false,
     photoDataUrl: m?.photoDataUrl,
+    grls: m?.grls,
   };
 }
 
@@ -113,7 +117,8 @@ export function MedForm({ id }: { id?: string }) {
   const [nameFocused, setNameFocused] = useState(false);
   const savedMedications = useMedi((s) => s.medications);
   const savedNames = useMemo(() => savedMedications.map((m) => m.name), [savedMedications]);
-  const nameSuggestions = useMemo(() => {
+  const [grlsSuggestions, setGrlsSuggestions] = useState<GrlsItem[]>([]);
+  const localNameSuggestions = useMemo(() => {
     const query = draft.name.trim().toLocaleLowerCase();
     if (query.length < 2) return [];
     return [...new Set([...savedNames, ...CATALOG])]
@@ -125,6 +130,29 @@ export function MedForm({ id }: { id?: string }) {
       })
       .slice(0, 8);
   }, [draft.name, savedNames, lang]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const query = draft.name.trim();
+    if (!nameFocused || query.length < 2) {
+      setGrlsSuggestions([]);
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      void searchGrls(query).then((items) => {
+        if (!cancelled) setGrlsSuggestions(items);
+      });
+    }, 120);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [draft.name, nameFocused]);
+
+  const nameSuggestions = useMemo(
+    () => localNameSuggestions.length + grlsSuggestions.length,
+    [localNameSuggestions, grlsSuggestions],
+  );
 
   function patch(p: Partial<Draft>) {
     setDraft((d) => ({ ...d, ...p }));
@@ -208,6 +236,7 @@ export function MedForm({ id }: { id?: string }) {
       indefinite: draft.indefinite,
       status: draft.status,
       photoDataUrl: draft.photoDataUrl,
+      grls: draft.grls,
       notes: draft.notes,
       instructions: draft.instructions,
       swatch: draft.swatch,
@@ -243,18 +272,44 @@ export function MedForm({ id }: { id?: string }) {
         </div>
       ) : null}
       <Field label={tr("fieldName")}>
-        {nameFocused && nameSuggestions.length > 0 ? (
+        {nameFocused && nameSuggestions > 0 ? (
           <div className="med-suggestions" role="listbox" aria-label={tr("fieldName")}>
-            {nameSuggestions.map((name) => (
+            {grlsSuggestions.map((item) => (
               <button
-                key={name}
+                key={`grls-${item.r}-${item.n}-${item.s}`}
+                type="button"
+                role="option"
+                aria-selected={draft.name === item.n}
+                className="med-suggestion"
+                onPointerDown={(event) => event.preventDefault()}
+                onClick={() => {
+                  patch({
+                    name: item.n,
+                    grls: {
+                      registrationNumber: item.r,
+                      inn: item.i,
+                      dosageForms: item.f,
+                      status: item.s,
+                      expiryDate: item.e,
+                    },
+                  });
+                  setNameFocused(false);
+                }}
+              >
+                <span className="block font-semibold">{item.n}</span>
+                <span className="block text-sm text-muted">{[item.i, item.s, item.r].filter(Boolean).join(" · ")}</span>
+              </button>
+            ))}
+            {localNameSuggestions.map((name) => (
+              <button
+                key={`local-${name}`}
                 type="button"
                 role="option"
                 aria-selected={draft.name === name}
                 className="med-suggestion"
                 onPointerDown={(event) => event.preventDefault()}
                 onClick={() => {
-                  patch({ name });
+                  patch({ name, grls: undefined });
                   setNameFocused(false);
                 }}
               >
@@ -266,22 +321,31 @@ export function MedForm({ id }: { id?: string }) {
         <input
           className="field"
           value={draft.name}
-          onChange={(e) => patch({ name: e.target.value })}
+          onChange={(e) => patch({ name: e.target.value, grls: e.target.value === draft.name ? draft.grls : undefined })}
           onFocus={() => setNameFocused(true)}
           onBlur={() => setNameFocused(false)}
           onKeyDown={(event) => {
             if (event.key === "Escape") setNameFocused(false);
-            if (event.key === "ArrowDown" && nameSuggestions.length) {
+            if (event.key === "ArrowDown" && nameSuggestions > 0) {
               event.preventDefault();
               (document.querySelector(".med-suggestion") as HTMLButtonElement | null)?.focus();
             }
           }}
           role="combobox"
           aria-autocomplete="list"
-          aria-expanded={nameFocused && nameSuggestions.length > 0}
+          aria-expanded={nameFocused && nameSuggestions > 0}
           required
         />
       </Field>
+      {draft.grls ? (
+        <div className="card grid gap-1" aria-label="Данные ГРЛС">
+          <p className="font-semibold">Данные из ГРЛС</p>
+          <p className="text-sm text-muted">Рег. № {draft.grls.registrationNumber} · {draft.grls.status}</p>
+          {draft.grls.inn ? <p className="text-sm">МНН: {draft.grls.inn}</p> : null}
+          {draft.grls.dosageForms ? <p className="text-sm">Формы выпуска: {draft.grls.dosageForms}</p> : null}
+          {draft.grls.expiryDate ? <p className="text-sm text-muted">Дата окончания в выгрузке: {draft.grls.expiryDate}</p> : null}
+        </div>
+      ) : null}
       <Field label={tr("fieldForm")}>
         <select className="field" value={draft.form} onChange={(e) => patch({ form: e.target.value as MedForm })}>
           {FORMS.map((f) => (
