@@ -494,14 +494,199 @@ export function Privacy() {
 
 export function About() {
   const tr = useT();
+  const lang = useLang();
+  const ru = lang === "ru";
+  const sections = ru ? [
+    {
+      title: "1. Первое знакомство и навигация",
+      content: [
+        ["Главные разделы", "В нижней панели находятся три основных раздела: «Сегодня», «Препараты» и «Ещё». «Сегодня» показывает план на выбранную дату, «Препараты» содержит список курсов, а в «Ещё» собраны история, отчёт, профили, резервная копия, настройки, конфиденциальность и эта инструкция."],
+        ["Переходы между экранами", "Нажмите на карточку или название, чтобы открыть подробности. На внутренних экранах используйте стрелку «Назад» вверху или системный жест возврата от края экрана. Возврат ведёт на предыдущий экран, а не удаляет введённые данные."],
+        ["Профиль в верхней части экрана", "Имя и значок рядом с датой показывают, для кого сейчас открыт дневник. Нажмите на этот элемент, чтобы переключиться на другого человека. Перед отметкой приёма или редактированием курса всегда проверяйте активный профиль."]
+      ]
+    },
+    {
+      title: "2. Профили: несколько человек в одном дневнике",
+      content: [
+        ["Создание профиля", "Откройте «Ещё» → «Профили семьи» → «Новый профиль». Укажите имя, выберите значок и цвет. При необходимости включите «Сделать главным». Главный профиль выбирается как основной, но переключаться между профилями можно в любой момент."],
+        ["Раздельные данные", "У каждого профиля собственные препараты, расписание, отметки приёма и история. Записи разных людей не смешиваются. Новый препарат добавляется именно в тот профиль, который активен в момент создания."],
+        ["Пауза на время отсутствия", "В настройках профиля можно указать период командировки или пребывания в больнице. На эти даты дневник не ожидает приёмов и не должен напоминать о них. Это техническая пауза расписания, а не медицинское изменение курса. После окончания периода обычный план продолжится."],
+        ["Удаление профиля", "Удаление профиля удаляет также его курсы и историю. Остальные профили сохраняются. Последний оставшийся профиль удалить нельзя. Перед удалением нужные сведения лучше экспортировать в резервную копию."]
+      ]
+    },
+    {
+      title: "3. Добавление и настройка препарата",
+      content: [
+        ["Создать запись", "Откройте «Препараты» и нажмите «Добавить». Заполняйте карточку по назначению врача или инструкции к препарату. Название можно ввести вручную; если доступна подсказка из каталога ГРЛС, выберите подходящую запись и проверьте, что совпадают торговое название, МНН и лекарственная форма."],
+        ["Форма, дозировка и количество", "Выберите форму выпуска: таблетка, капсула, капли, инъекция, спрей, мазь, порошок или другое. Укажите дозировку и единицу измерения, а также количество единиц на один приём. Например, если назначено две таблетки за один раз, количество единиц на приём должно отражать именно это назначение. Не пересчитывайте дозу самостоятельно."],
+        ["Даты курса и статус", "Укажите дату начала и дату окончания. Если окончание не определено, используйте режим бессрочного курса. Статус определяет, участвует ли препарат в текущем плане: активный отображается в расписании, приостановленный временно не планируется, завершённый и архивный хранятся отдельно."],
+        ["Время и схема приёма", "Добавьте каждое назначенное время. Затем выберите правило дней: ежедневно, по будням, по выходным, выбранные дни недели, через заданное число дней, циклический режим «дни приёма / дни перерыва» или однократный приём на конкретную дату. Для циклов и интервалов важна дата начала/опорная дата: от неё рассчитывается чередование."],
+        ["Окно приёма", "Окно задаёт допустимое отклонение от указанного времени, в пределах которого дневник считает приём своевременным. Это параметр учёта и статистики, а не разрешение менять назначение. Установите его согласно принятому порядку наблюдения и не используйте для самостоятельного изменения режима лечения."],
+        ["Инструкции и комментарии", "В карточке можно отметить напоминания вроде «до еды», «после еды», «во время еды», «натощак», «не разжёвывать», «запить водой», «перед сном» или «под язык». В поле комментария сохраните пояснения врача. Эти поля служат личной памяткой и не заменяют официальную инструкцию."],
+        ["Связанные препараты, остаток и фото", "При необходимости добавьте заметки о препаратах, которые принимаются вместе или которых следует избегать согласно назначению врача. Укажите размер упаковки, текущий остаток и порог, при котором нужен сигнал о пополнении. Можно прикрепить фотографию упаковки. Фото помогает визуально опознать запись, но не подтверждает подлинность или состав лекарства."],
+        ["Важный препарат", "Для помеченного важным препарата напоминания не подавляются настройкой тихих часов. Используйте отметку только осознанно. Она не повышает медицинскую эффективность препарата и не меняет назначенную дозу."],
+        ["Редактирование, пауза и архив", "Нажмите на запись в списке, чтобы открыть её для изменения. Активный курс можно приостановить, а приостановленный возобновить. Завершённые и архивные записи доступны на соответствующей вкладке. Для нескольких записей можно включить режим выбора и завершить или архивировать выбранные курсы сразу."]
+      ]
+    },
+    {
+      title: "4. Экран «Сегодня»: план и отметки приёма",
+      content: [
+        ["План на день", "На главном экране показаны дата, активный профиль, общий прогресс и список запланированных приёмов по времени. Карточка ближайшего события выделяется отдельно. Переключайте даты стрелками в блоке календаря; кнопка с текущей датой возвращает к сегодняшнему плану."],
+        ["Отметить приём", "Когда препарат принят, нажмите «Принято» на карточке или откройте карточку приёма и выберите соответствующее действие. Дневник сохранит отметку и определит, был ли приём вовремя или с опозданием. После отметки доступна возможность отменить последнее действие, если вы нажали случайно."],
+        ["Пропуск и причина", "Если приём не состоялся, откройте его карточку и укажите пропуск. Если приложение предлагает выбрать причину, отметьте подходящую: забыли, побочный эффект, закончился запас, плохое самочувствие, указание врача или другая причина. Причина помогает анализировать историю, но не является медицинской оценкой."],
+        ["Отложить напоминание", "Если нужно ненадолго отложить сигнал, используйте действие «Отложить» в карточке приёма или уведомлении, если оно доступно. Будет запланировано повторное напоминание. Отсрочка не переносит автоматически все последующие приёмы и не должна использоваться для изменения назначения."],
+        ["Разовый приём", "Кнопка разового приёма позволяет добавить событие только на выбранную дату, не создавая постоянный курс. Проверьте название, время и количество перед сохранением. Такой приём не следует путать с регулярным расписанием."],
+        ["Изменить время на один день", "Функция переноса/сдвига дня предназначена для разовой корректировки расписания на выбранную дату. Она не переписывает базовую схему курса. Перед применением проверьте исходное и новое время."],
+        ["Будущие и прошедшие даты", "Будущие даты можно просматривать для планирования, но отметки о фактически принятом препарате ставятся за текущий или прошедший день в соответствии с доступными действиями. Просмотр другой даты не переключает активный профиль."]
+      ]
+    },
+    {
+      title: "5. Напоминания и разрешения Android",
+      content: [
+        ["Включить напоминания", "Откройте «Ещё» → «Настройки» → «Напоминания». Включите показ уведомлений, затем разрешите уведомления в системном запросе Android. Если разрешение было запрещено ранее, откройте настройки приложения в Android и включите уведомления вручную."],
+        ["Точные будильники", "На Android для более точного времени может требоваться отдельное разрешение «Будильники и напоминания» / «Точные будильники». В разделе настроек MediTrack отображается состояние доступа и кнопка перехода к его выдаче. Если доступ запрещён, система может задерживать сигналы."],
+        ["Звук, вибрация и повторы", "Выберите, нужен ли звук и вибрация, через какой интервал повторять сигнал и сколько повторов делать. Повторы ограничены временным окном приёма. Если приём отмечен, дальнейшие напоминания для него не должны продолжаться после обновления расписания."],
+        ["Тихие часы", "Включите тихие часы и задайте время начала и окончания. Для обычных препаратов уведомления в этот период не планируются. Пометка «Важный препарат» позволяет конкретному курсу обходить тихие часы."],
+        ["Если уведомления не приходят", "Проверьте, что курс активен, дата и время приёма заданы верно, напоминания включены, системное разрешение выдано, а точные будильники разрешены. Проверьте также звук канала уведомлений и режим «Не беспокоить». На Xiaomi/HyperOS при необходимости разрешите приложению автозапуск и работу в фоне, а для проверки временно отключите ограничения экономии батареи."],
+        ["Закрытие и принудительная остановка", "Обычное закрытие экрана или удаление приложения из списка недавних задач не равнозначно команде «Остановить» в системных настройках. Принудительная остановка Android блокирует работу приложения и его сигналы до следующего ручного запуска. После перезагрузки устройства откройте MediTrack хотя бы один раз, чтобы приложение восстановило актуальное расписание."],
+        ["Проверка", "Кнопка «Проверить звук» отправляет тестовое уведомление или воспроизводит тестовый сигнал. Она проверяет канал уведомлений, но сама по себе не доказывает, что все будущие напоминания запланированы правильно. Для практической проверки создайте тестовый приём на ближайшее время и убедитесь, что уведомление появляется."]
+      ]
+    },
+    {
+      title: "6. История и отчёт для врача",
+      content: [
+        ["История приёмов", "В разделе «Ещё» → «История» выберите даты начала и окончания, препарат и статус. История показывает запланированные события за выбранный период и сохранённые отметки: своевременно, с опозданием, пропущено, отказ, отложено и другие состояния."],
+        ["Как читать статусы", "«Вовремя» означает, что отметка попала в установленное окно. «С опозданием» означает, что отметка сделана позже этого окна. «Пропущено» фиксирует не состоявшийся приём; «Отказ» фиксирует сознательно отмеченный отказ. Будущие и ещё не наступившие события не следует трактовать как пропуски."],
+        ["Отчёт", "В разделе «Отчёт» выберите профиль и период. Сводка показывает процент соблюдения расписания, таблицу по препаратам, пропуски и поле комментария к визиту. Добавьте краткие вопросы или пояснения, которые хотите обсудить с врачом."],
+        ["Сохранить и отправить PDF", "Нажмите «Сохранить PDF». Приложение сформирует файл и откроет системное меню Android «Поделиться». Выберите подходящее приложение, например почту или мессенджер, либо доступный способ сохранения файла. Перед отправкой проверьте, что выбран правильный профиль и период."],
+        ["CSV и ограничения отчёта", "Если в истории доступно скачивание CSV, используйте его для табличного анализа. Отчёт отражает только те сведения, которые были внесены в дневник. Он не подтверждает фактический приём, не устанавливает диагноз и не заменяет медицинскую документацию."]
+      ]
+    },
+    {
+      title: "7. Резервная копия и восстановление",
+      content: [
+        ["Создать копию", "Откройте «Ещё» → «Резервная копия». Для зашифрованной копии задайте пароль и скачайте файл. Запомните пароль отдельно: без него открыть зашифрованный файл нельзя, а восстановить забытый пароль невозможно."],
+        ["Незашифрованная копия", "Можно скачать копию без шифрования. Такой файл содержит личные и медицинские сведения в читаемом виде. Храните его в защищённом месте и не отправляйте посторонним."],
+        ["Восстановить данные", "Выберите файл резервной копии. Если он зашифрован, введите пароль. Перед подтверждением внимательно прочитайте предупреждение: восстановление заменяет текущие данные на устройстве содержимым файла. Если нужно добавить только один курс, используйте импорт отдельного файла курса, если он подготовлен."],
+        ["Где хранить файл", "Сохраните копию в надёжном месте, доступном только вам. Полезно иметь вторую копию отдельно от телефона. Не храните пароль рядом с файлом и периодически создавайте новую копию после важных изменений."]
+      ]
+    },
+    {
+      title: "8. Настройки, защита и конфиденциальность",
+      content: [
+        ["Внешний вид", "В настройках можно выбрать светлую, тёмную или системную тему, увеличить размер текста и переключить язык интерфейса. Эти параметры меняют отображение приложения, но не влияют на расписание и записи."],
+        ["PIN-код и биометрия", "Можно установить PIN-код для открытия дневника. Придумайте код, который не забудете, и не сообщайте его другим. Если устройство поддерживает биометрическую проверку, её можно включить дополнительно. Биометрия зависит от возможностей и настроек самого телефона."],
+        ["Если забыли PIN", "Восстановить забытый PIN средствами дневника нельзя. Предусмотренный сценарий сброса блокировки удаляет локальные данные приложения. Поэтому до включения PIN особенно важно иметь актуальную резервную копию и помнить пароль от неё."],
+        ["Локальное хранение", "Данные дневника хранятся на устройстве. Приложение не отправляет их врачу автоматически и не синхронизирует с облаком. Передача отчёта или резервной копии происходит только по вашему действию через системное меню Android."],
+        ["Удаление данных", "Команда очистки удаляет профили, курсы и историю с устройства. Это действие нельзя отменить. Сначала экспортируйте резервную копию, если сведения могут понадобиться."]
+      ]
+    },
+    {
+      title: "9. Важные ограничения и безопасное использование",
+      content: [
+        ["Дневник не назначает лечение", "MediTrack помогает вести записи и напоминать о внесённом расписании. Приложение не назначает препараты, не рассчитывает индивидуальную дозу и не оценивает совместимость лекарств. Все названия, дозировки, время и правила приёма сверяйте с назначением врача и официальной инструкцией."],
+        ["Не меняйте назначение по подсказке приложения", "Изменение времени, перенос события, тихие часы и отметка важности являются функциями учёта. Они не означают, что можно самостоятельно менять дозу, отменять курс, удваивать пропущенную дозу или компенсировать пропуск. При сомнениях обратитесь к врачу или фармацевту."],
+        ["Проверяйте введённые данные", "Ошибочное время, единица измерения, профиль или дата могут привести к неверному расписанию и отчёту. После создания курса внимательно просмотрите его карточку и ближайший план на экране «Сегодня»."],
+        ["Уведомление не гарантирует приём", "Полученное уведомление не означает, что препарат принят. Отметку нужно внести вручную. И наоборот, отсутствие уведомления не является подтверждением отмены приёма. Проверяйте план в приложении."]
+      ]
+    }
+  ] : [
+    { title: "1. Getting started and navigation", content: [
+      ["Main sections", "The bottom navigation contains Today, Medicines and More. Today shows the plan for a selected date; Medicines contains treatment courses; More contains history, reports, profiles, backup, settings, privacy and this guide."],
+      ["Moving between screens", "Tap a card or name to open details. On inner screens, use the Back arrow or the Android edge-back gesture. Returning to a previous screen does not delete your entries."],
+      ["Active profile", "The name and icon near the date show whose journal is open. Tap them to switch profiles. Always check the active profile before recording a dose or editing a course."]
+    ]},
+    { title: "2. Profiles and family members", content: [
+      ["Create a profile", "Go to More → Family profiles → New profile. Enter a name and choose an icon and colour. You can mark one profile as primary."],
+      ["Separate records", "Each profile has its own medicines, schedule, dose log and history. A new course is added to the currently active profile."],
+      ["Away period", "A profile can be paused for a trip or hospital stay over selected dates. This suppresses expected doses and reminders for that period; it is not a medical change to the treatment."],
+      ["Delete a profile", "Deleting a profile also deletes its courses and history. Other profiles remain. Export a backup first if you may need those records."]
+    ]},
+    { title: "3. Adding and configuring a medicine", content: [
+      ["Create a record", "Open Medicines and tap Add. Enter the name manually or choose a matching GRLS catalogue suggestion when available. Check the trade name, active ingredient and dosage form."],
+      ["Form and dose", "Choose the dosage form, strength, unit and number of units per dose. Enter the prescribed regimen exactly as provided by the clinician. Do not calculate or change a dose yourself."],
+      ["Course dates and status", "Set the start and end dates, or choose an indefinite course. Active courses appear in the plan; paused courses are temporarily excluded; completed and archived records remain separate."],
+      ["Times and schedule", "Add every prescribed time and select a rule: daily, weekdays, weekends, selected weekdays, interval, repeating on/off cycle, or a single date. Interval and cycle rules use an anchor date to calculate alternation."],
+      ["Dose window", "The window determines how much deviation is counted as on time in the journal. It is a tracking setting, not permission to alter the prescription."],
+      ["Instructions and notes", "You can record reminders such as before food, after food, with food, empty stomach, do not chew, take with water, bedtime or sublingual. Notes can store clinician instructions."],
+      ["Related medicines, stock and photo", "Record medicines to take with or avoid according to professional advice. Set pack size, current stock and a refill threshold. You can attach a package photo for visual reference."],
+      ["Important medicine", "Important courses ignore quiet hours. Use this flag deliberately; it does not change the prescribed dose."],
+      ["Edit, pause and archive", "Open a medicine to edit it. Active courses can be paused and paused courses resumed. You can select several courses to complete or archive them together."]
+    ]},
+    { title: "4. Today: schedule and dose records", content: [
+      ["Daily plan", "Today shows the date, active profile, progress and scheduled doses. Use the date arrows to browse other days; tap the date button to return to today."],
+      ["Mark a dose as taken", "Tap Taken on a dose card or open its details and choose the relevant action. The journal records whether it was on time or late. The latest action can be undone if selected by mistake."],
+      ["Missed doses", "Open a dose and record that it was missed. If prompted, select a reason such as forgotten, side effect, out of stock, feeling unwell, clinician instruction or other."],
+      ["Snooze", "Use Snooze on a dose or notification when available to schedule another reminder. Snoozing does not automatically move later doses or change the prescription."],
+      ["One-time dose", "The one-time action adds an event for the selected date without creating a recurring course. Check its name, time and amount before saving."],
+      ["Move a dose for one day", "The shift action adjusts the schedule for the selected date only; it does not rewrite the course's regular schedule."],
+      ["Other dates", "Future dates can be viewed for planning. Viewing another date does not change the active profile."]
+    ]},
+    { title: "5. Reminders and Android permissions", content: [
+      ["Enable reminders", "Go to More → Settings → Reminders. Enable notifications and grant Android notification permission. If previously denied, enable it in Android app settings."],
+      ["Exact alarms", "Precise timing may require Android's Alarms & reminders / exact alarms access. The MediTrack settings page shows its status and provides an access button."],
+      ["Sound, vibration and repeats", "Choose sound and vibration, the repeat interval and the number of repeats. Repeats are limited by the dose window."],
+      ["Quiet hours", "Enable quiet hours and set their start and end. Ordinary courses are not scheduled during this period. Important courses can bypass quiet hours."],
+      ["If reminders do not arrive", "Check that the course is active, its date and time are correct, notifications are enabled, and notification and exact-alarm permissions are granted. Check Do Not Disturb and notification-channel sound. On Xiaomi/HyperOS, review background and battery restrictions if needed."],
+      ["Closing versus force stop", "Swiping the app away is not the same as Force stop in Android settings. A force-stopped app cannot deliver its alarms until manually opened again. After a device reboot, open MediTrack once so it can refresh its schedule."],
+      ["Test", "Test sound checks the notification channel, but does not prove all future alarms are scheduled. For a practical test, create a dose a few minutes ahead and verify its notification."]
+    ]},
+    { title: "6. History and clinician report", content: [
+      ["Dose history", "In More → History, select a date range, medicine and status to filter records."],
+      ["Statuses", "On time means the dose was recorded within its configured window; Late means after that window. Missed and Skipped are recorded outcomes. Future events are not missed doses."],
+      ["Report", "Choose a profile and period. The report shows adherence, per-medicine figures, missed doses and a note for the visit."],
+      ["Save and share PDF", "Tap Save PDF. MediTrack creates a file and opens Android's system share sheet. Choose an email or messenger app, or a save destination. Check the profile and period before sharing."],
+      ["CSV and report limits", "CSV can be used for spreadsheet analysis when available. Reports contain only information entered in the journal and are not medical conclusions."]
+    ]},
+    { title: "7. Backup and restore", content: [
+      ["Create a backup", "Open More → Backup. Set a passphrase for an encrypted backup and download the file. The passphrase cannot be recovered if forgotten."],
+      ["Unencrypted backup", "An unencrypted file contains readable personal and medical information. Keep it private and secure."],
+      ["Restore", "Select the backup file and enter its passphrase if encrypted. Restoring replaces the current device data with the backup contents. Read the confirmation carefully."],
+      ["Storage", "Keep a copy somewhere safe, preferably a second copy separate from the phone. Store the passphrase separately."]
+    ]},
+    { title: "8. Settings, protection and privacy", content: [
+      ["Appearance", "Choose light, dark or system theme, text size and interface language. These settings do not change the schedule."],
+      ["PIN and biometrics", "You can protect the journal with a PIN and enable device biometrics when supported. Do not share your PIN."],
+      ["Forgotten PIN", "The PIN cannot be recovered. The reset flow removes local app data. Keep a current backup before enabling the lock."],
+      ["Local storage", "Journal data stays on the device. It is not automatically sent to a clinician or synced to a cloud service. Sharing happens only when you choose to export or send a file."],
+      ["Erase data", "Erasing removes profiles, courses and history from the device and cannot be undone. Export a backup first if needed."]
+    ]},
+    { title: "9. Important limitations and safe use", content: [
+      ["Not a treatment tool", "MediTrack records a schedule and provides reminders. It does not prescribe medicines, calculate an individual dose or assess drug interactions. Follow the clinician's prescription and official medicine information."],
+      ["Do not change treatment based on app features", "Snoozing, shifting a reminder, quiet hours and the important flag are tracking features. They do not authorize changing a dose, stopping treatment or doubling a missed dose."],
+      ["Check your entries", "An incorrect time, unit, profile or date can produce an incorrect schedule or report. Review the course and the Today screen after saving."],
+      ["A notification is not proof", "A notification does not confirm that a medicine was taken. Record the dose manually. No notification does not mean the dose was cancelled."]
+    ]}
+  ];
+
   return (
     <div className="grid gap-4">
       <h1 className="font-display text-3xl">{tr("brandFull")}</h1>
       <p className="text-muted">{tr("version")}</p>
-      <p>{tr("about1")}</p>
-      <p>{tr("about2")}</p>
-      <p>{tr("about3")}</p>
-      <p className="font-semibold">{tr("notMedical")}</p>
+      <section className="grid gap-2">
+        <h2 className="font-display text-2xl">{ru ? "Инструкция по использованию" : "User guide"}</h2>
+        <p className="text-muted">{ru ? "Подробная справка по разделам приложения. Нажмите на заголовок, чтобы раскрыть нужную тему." : "A detailed guide to the app. Tap a heading to expand a topic."}</p>
+        {sections.map((section, index) => (
+          <details key={section.title} className="help-accordion card" open={index === 0}>
+            <summary className="font-semibold">{section.title}</summary>
+            <div className="mt-3 grid gap-3">
+              {section.content.map(([heading, body]) => (
+                <div key={heading}>
+                  <h3 className="font-semibold">{heading}</h3>
+                  <p className="mt-1 text-muted">{body}</p>
+                </div>
+              ))}
+            </div>
+          </details>
+        ))}
+      </section>
+      <section className="grid gap-2 border-t border-line pt-4">
+        <h2 className="font-display text-2xl">{ru ? "О приложении" : "About this app"}</h2>
+        <p>{tr("about1")}</p>
+        <p>{tr("about2")}</p>
+        <p>{tr("about3")}</p>
+        <p className="font-semibold">{tr("notMedical")}</p>
+      </section>
     </div>
   );
 }
