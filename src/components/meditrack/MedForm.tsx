@@ -23,7 +23,7 @@ import { useNav } from "@/components/meditrack/nav";
 import { weekdayOrder } from "@/lib/meditrack/format";
 import type { Key } from "@/lib/meditrack/i18n";
 import { useEffect, useMemo, useState } from "react";
-import { searchGrls, type GrlsItem } from "@/lib/meditrack/grls";
+import { searchGrls, type GrlsGroup, type GrlsItem } from "@/lib/meditrack/grls";
 import { toast } from "sonner";
 
 type Kind = DayRule["kind"];
@@ -117,7 +117,7 @@ export function MedForm({ id }: { id?: string }) {
   const [nameFocused, setNameFocused] = useState(false);
   const savedMedications = useMedi((s) => s.medications);
   const savedNames = useMemo(() => savedMedications.map((m) => m.name), [savedMedications]);
-  const [grlsSuggestions, setGrlsSuggestions] = useState<GrlsItem[]>([]);
+  const [grlsSuggestions, setGrlsSuggestions] = useState<GrlsGroup[]>([]);
   const localNameSuggestions = useMemo(() => {
     const query = draft.name.trim().toLocaleLowerCase();
     if (query.length < 2) return [];
@@ -274,31 +274,47 @@ export function MedForm({ id }: { id?: string }) {
       <Field label={tr("fieldName")}>
         {nameFocused && nameSuggestions > 0 ? (
           <div className="med-suggestions" role="listbox" aria-label={tr("fieldName")}>
-            {grlsSuggestions.map((item) => (
-              <button
-                key={`grls-${item.r}-${item.n}-${item.s}`}
-                type="button"
-                role="option"
-                aria-selected={draft.name === item.n}
-                className="med-suggestion"
-                onPointerDown={(event) => event.preventDefault()}
-                onClick={() => {
-                  patch({
-                    name: item.n,
-                    grls: {
-                      registrationNumber: item.r,
-                      inn: item.i,
-                      dosageForms: item.f,
-                      status: item.s,
-                      expiryDate: item.e,
-                    },
-                  });
-                  setNameFocused(false);
-                }}
-              >
-                <span className="block font-semibold">{item.n}</span>
-                <span className="block text-sm text-muted">{item.i || "Действующее вещество не указано"}</span>
-              </button>
+            {grlsSuggestions.map((group) => (
+              <div key={`grls-group-${group.name}-${group.inn}`} className="med-suggestion-group" role="group" aria-label={group.name}>
+                <div className="px-3 py-2">
+                  <span className="block font-semibold">{group.name}</span>
+                  <span className="block text-sm text-muted">{group.inn || "Действующее вещество не указано"}</span>
+                  {group.items.length > 1 ? (
+                    <span className="block text-xs text-muted mt-1">
+                      {group.items.length} вариантов в ГРЛС
+                    </span>
+                  ) : null}
+                </div>
+                {group.items.map((item) => (
+                  <button
+                    key={`grls-${item.r}-${item.f}-${item.s}-${item.e}`}
+                    type="button"
+                    role="option"
+                    aria-selected={draft.name === item.n && draft.grls?.registrationNumber === item.r}
+                    className="med-suggestion med-suggestion-variant"
+                    onPointerDown={(event) => event.preventDefault()}
+                    onClick={() => {
+                      patch({
+                        name: item.n,
+                        grls: {
+                          registrationNumber: item.r,
+                          inn: item.i,
+                          dosageForms: item.f,
+                          status: item.s,
+                          expiryDate: item.e,
+                        },
+                      });
+                      setNameFocused(false);
+                    }}
+                  >
+                    <span className="block text-sm">{item.f || "Лекарственная форма не указана"}</span>
+                    <span className="block text-xs text-muted">
+                      {item.r ? `Рег. № ${item.r}` : "Регистрационный номер не указан"}
+                      {item.s ? ` · ${item.s}` : ""}
+                    </span>
+                  </button>
+                ))}
+              </div>
             ))}
             {localNameSuggestions.map((name) => (
               <button
