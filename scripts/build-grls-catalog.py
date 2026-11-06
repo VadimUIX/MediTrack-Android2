@@ -58,7 +58,7 @@ with zipfile.ZipFile(ARCHIVE) as archive:
                         "s": status, "e": expiry,
                     }
                 elif forms and forms not in record["f"]:
-                    record["f"] = (record["f"] + "; " + forms).strip("; ")[:1200]
+                    record["f"] = (record["f"] + "; " + forms).strip("; ")[:320]
             workbook.close()
 
 items = sorted(records.values(), key=lambda item: (item["n"].casefold(), item["i"].casefold(), item["s"], item["r"]))
