@@ -65,6 +65,14 @@ export type Profile = {
   createdAt: string;
 };
 
+export type GrlsReference = {
+  registrationNumber: string;
+  inn: string;
+  dosageForms: string;
+  status: string;
+  expiryDate: string;
+};
+
 export type RelatedMed = { name: string; relation: "with" | "avoid" };
 
 export type Medication = {
@@ -85,6 +93,7 @@ export type Medication = {
   indefinite: boolean;
   status: CourseStatus;
   photoDataUrl?: string;
+  grls?: GrlsReference;
   notes: string;
   instructions: InstructionId[];
   swatch: Swatch;
