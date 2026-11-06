@@ -7,6 +7,7 @@ import { Today } from "@/components/meditrack/Today";
 import { NavProvider, tabOf, useNav } from "@/components/meditrack/nav";
 import { useT } from "@/components/meditrack/ui";
 import { armAudio } from "@/components/meditrack/sound";
+import { getExactAlarmPermission, getNotifPermission, isNative, requestExactAlarmPermission, requestNotifPermission, type NotifPerm } from "@/lib/native-notify";
 import { useMedi } from "@/lib/meditrack/store";
 import { CalendarDays, ChevronLeft, Menu, Pill } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
@@ -127,6 +128,7 @@ function Frame() {
         <Tab icon={<Pill />} label={tr("navMeds")} on={tab === "meds"} onClick={() => reset({ name: "meds" })} />
         <Tab icon={<Menu />} label={tr("navMore")} on={tab === "more"} onClick={() => reset({ name: "more" })} />
       </nav>
+      <NotificationSetup />
       <Toaster position="top-center" toastOptions={{ className: "font-sans", style: { background: "var(--surface)", color: "var(--ink)", border: "1px solid var(--line)" } }} />
     </div>
   );
@@ -138,5 +140,132 @@ function Tab({ icon, label, on, onClick }: { icon: ReactNode; label: string; on:
       {icon}
       <span>{label}</span>
     </button>
+  );
+}
+
+
+const NOTIFICATION_SETUP_KEY = "meditrack-notification-setup-v1";
+
+function NotificationSetup() {
+  const tr = useT();
+  const [visible, setVisible] = useState(false);
+  const [step, setStep] = useState<"notifications" | "exact" | "blocked">("notifications");
+  const [permission, setPermission] = useState<NotifPerm>("unknown");
+  const [exactPermission, setExactPermission] = useState<NotifPerm>("unknown");
+  const [busy, setBusy] = useState(false);
+
+  async function refreshPermissions() {
+    const [notification, exact] = await Promise.all([getNotifPermission(), getExactAlarmPermission()]);
+    setPermission(notification);
+    setExactPermission(exact);
+    if (notification === "granted" && exact === "granted") {
+      localStorage.setItem(NOTIFICATION_SETUP_KEY, "complete");
+      setVisible(false);
+    } else if (notification === "granted") {
+      setStep("exact");
+    }
+  }
+
+  useEffect(() => {
+    if (!isNative() || localStorage.getItem(NOTIFICATION_SETUP_KEY)) return;
+    let alive = true;
+    void Promise.all([getNotifPermission(), getExactAlarmPermission()]).then(([notification, exact]) => {
+      if (!alive) return;
+      setPermission(notification);
+      setExactPermission(exact);
+      if (notification === "granted" && exact === "granted") {
+        localStorage.setItem(NOTIFICATION_SETUP_KEY, "complete");
+      } else {
+        setStep(notification === "granted" ? "exact" : "notifications");
+        setVisible(true);
+      }
+    });
+    const onResume = () => {
+      if (document.visibilityState === "visible") void refreshPermissions();
+    };
+    window.addEventListener("focus", onResume);
+    document.addEventListener("visibilitychange", onResume);
+    return () => {
+      alive = false;
+      window.removeEventListener("focus", onResume);
+      document.removeEventListener("visibilitychange", onResume);
+    };
+  }, []);
+
+  async function allowNotifications() {
+    setBusy(true);
+    try {
+      const result = await requestNotifPermission();
+      setPermission(result);
+      setStep(result === "granted" ? "exact" : "blocked");
+      if (result === "granted") {
+        const exact = await getExactAlarmPermission();
+        setExactPermission(exact);
+        if (exact === "granted") {
+          localStorage.setItem(NOTIFICATION_SETUP_KEY, "complete");
+          setVisible(false);
+        }
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function allowExactAlarms() {
+    setBusy(true);
+    try {
+      const result = await requestExactAlarmPermission();
+      setExactPermission(result);
+      if (result === "granted") {
+        localStorage.setItem(NOTIFICATION_SETUP_KEY, "complete");
+        setVisible(false);
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function dismiss() {
+    localStorage.setItem(NOTIFICATION_SETUP_KEY, "dismissed");
+    setVisible(false);
+  }
+
+  if (!visible) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/45 px-3 pb-3 sm:items-center">
+      <section role="dialog" aria-modal="true" aria-labelledby="notification-setup-title" className="w-full max-w-lg rounded-3xl border border-line bg-surface p-5 shadow-2xl">
+        <div className="mb-3 flex size-12 items-center justify-center rounded-2xl bg-primary-soft text-primary">
+          <span className="text-2xl" aria-hidden>♧</span>
+        </div>
+        <h2 id="notification-setup-title" className="font-display text-2xl">{tr("setupNotifTitle")}</h2>
+        <p className="mt-2 text-muted">{tr("setupNotifLead")}</p>
+        <div className="mt-4 grid gap-3">
+          <div className="card grid gap-1">
+            <p className="font-semibold">{tr("setupNotifStep1")}</p>
+            <p className="text-sm text-muted">{tr("setupNotifStep1Hint")}</p>
+            <p className="text-sm">{permission === "granted" ? tr("notifGranted") : permission === "denied" ? tr("notifDenied") : tr("notifDefault")}</p>
+          </div>
+          {step === "notifications" || step === "blocked" ? (
+            <Btn block disabled={busy} onClick={() => void allowNotifications()}>{busy ? tr("working") : tr("allowNotif")}</Btn>
+          ) : null}
+          {step === "exact" ? (
+            <>
+              <div className="card grid gap-1">
+                <p className="font-semibold">{tr("setupExactTitle")}</p>
+                <p className="text-sm text-muted">{tr("setupExactHint")}</p>
+                <p className="text-sm">{exactPermission === "granted" ? tr("exactAlarmGranted") : tr("exactAlarmDenied")}</p>
+              </div>
+              <Btn block disabled={busy} onClick={() => void allowExactAlarms()}>{busy ? tr("working") : tr("allowExactAlarm")}</Btn>
+              <Btn variant="ghost" block disabled={busy} onClick={() => void refreshPermissions()}>{tr("checkAgain")}</Btn>
+            </>
+          ) : null}
+          <div className="rounded-2xl bg-primary-soft p-3 text-sm text-muted">
+            <p>{tr("setupLockScreenHint")}</p>
+            <p className="mt-2">{tr("setupXiaomiHint")}</p>
+          </div>
+          <Btn variant="ghost" block disabled={busy} onClick={dismiss}>{tr("setupLater")}</Btn>
+        </div>
+      </section>
+    </div>
   );
 }
