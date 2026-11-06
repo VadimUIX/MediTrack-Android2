@@ -297,7 +297,7 @@ export function MedForm({ id }: { id?: string }) {
                 }}
               >
                 <span className="block font-semibold">{item.n}</span>
-                <span className="block text-sm text-muted">{[item.i, item.s, item.r].filter(Boolean).join(" · ")}</span>
+                <span className="block text-sm text-muted">{item.i || "Действующее вещество не указано"}</span>
               </button>
             ))}
             {localNameSuggestions.map((name) => (
