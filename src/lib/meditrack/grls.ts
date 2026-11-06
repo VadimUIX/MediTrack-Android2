@@ -7,6 +7,13 @@ export type GrlsItem = {
   e: string;
 };
 
+export type GrlsGroup = {
+  name: string;
+  inn: string;
+  items: GrlsItem[];
+  score: number;
+};
+
 type GrlsCatalog = {
   source: string;
   asOf: string;
@@ -43,30 +50,48 @@ async function loadCatalog(): Promise<GrlsItem[]> {
   return catalogPromise;
 }
 
-export async function searchGrls(query: string, limit = 8): Promise<GrlsItem[]> {
+export async function searchGrls(query: string, limit = 8): Promise<GrlsGroup[]> {
   const normalized = normalize(query);
   if (normalized.length < 2) return [];
   try {
     const items = await loadCatalog();
-    const matches: Array<{ item: GrlsItem; score: number }> = [];
+    const groups = new Map<string, GrlsGroup>();
+
     for (const item of items) {
       const trade = normalize(item.n);
       const inn = normalize(item.i);
       if (!trade.includes(normalized) && !inn.includes(normalized)) continue;
+
       const score = trade.startsWith(normalized) ? 0 : inn.startsWith(normalized) ? 1 : trade.includes(normalized) ? 2 : 3;
-      matches.push({ item, score });
+      // Same trade name + same INN form one family. Different INNs remain separate.
+      const groupKey = `${trade}| ${inn}`;
+      let group = groups.get(groupKey);
+      if (!group) {
+        group = { name: item.n.trim(), inn: item.i.trim(), items: [], score };
+        groups.set(groupKey, group);
+      } else {
+        group.score = Math.min(group.score, score);
+      }
+
+      // Remove only truly identical registry rows; keep different forms, statuses,
+      // registration numbers, validity dates and pack/strength descriptions.
+      const duplicateKey = [item.r, item.f, item.s, item.e].map(normalize).join("|");
+      if (!group.items.some((existing) => [existing.r, existing.f, existing.s, existing.e].map(normalize).join("|") === duplicateKey)) {
+        group.items.push(item);
+      }
     }
-    matches.sort((a, b) => a.score - b.score || a.item.n.localeCompare(b.item.n, "ru") || a.item.r.localeCompare(b.item.r));
-    const seen = new Set<string>();
-    return matches
-      .filter(({ item }) => {
-        const key = `${item.r}| ${item.n}| ${item.s}`;
-        if (seen.has(key)) return false;
-        seen.add(key);
-        return true;
-      })
-      .slice(0, limit)
-      .map(({ item }) => item);
+
+    return [...groups.values()]
+      .map((group) => ({
+        ...group,
+        items: group.items.sort((a, b) =>
+          a.f.localeCompare(b.f, "ru") ||
+          a.s.localeCompare(b.s, "ru") ||
+          a.r.localeCompare(b.r, "ru"),
+        ),
+      }))
+      .sort((a, b) => a.score - b.score || a.name.localeCompare(b.name, "ru") || a.inn.localeCompare(b.inn, "ru"))
+      .slice(0, limit);
   } catch {
     return [];
   }
