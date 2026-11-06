@@ -199,6 +199,7 @@ function NotificationSetup() {
       setPermission(result);
       setStep(result === "granted" ? "exact" : "blocked");
       if (result === "granted") {
+        window.dispatchEvent(new Event("focus"));
         const exact = await getExactAlarmPermission();
         setExactPermission(exact);
         if (exact === "granted") {
