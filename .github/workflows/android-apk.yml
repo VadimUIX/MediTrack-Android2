@@ -14,6 +14,8 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 35
+    env:
+      SIGNING_CONFIGURED: ${{ secrets.ANDROID_APP_KEYSTORE_BASE64 != '' && secrets.ANDROID_APP_KEYSTORE_PASSWORD != '' && secrets.ANDROID_APP_KEY_ALIAS != '' && secrets.ANDROID_APP_KEY_PASSWORD != '' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -75,9 +77,36 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon
 
-      - name: Upload APK
+      - name: Prepare release signing key
+        if: env.SIGNING_CONFIGURED == 'true' && github.event_name != 'pull_request'
+        run: |
+          echo "$ANDROID_APP_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/meditrack-app-signing.jks"
+          echo "ANDROID_APP_KEYSTORE_PATH=$RUNNER_TEMP/meditrack-app-signing.jks" >> "$GITHUB_ENV"
+        env:
+          ANDROID_APP_KEYSTORE_BASE64: ${{ secrets.ANDROID_APP_KEYSTORE_BASE64 }}
+
+      - name: Build signed release APK
+        if: env.SIGNING_CONFIGURED == 'true' && github.event_name != 'pull_request'
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon
+        env:
+          ANDROID_APP_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_APP_KEYSTORE_PASSWORD }}
+          ANDROID_APP_KEY_ALIAS: ${{ secrets.ANDROID_APP_KEY_ALIAS }}
+          ANDROID_APP_KEY_PASSWORD: ${{ secrets.ANDROID_APP_KEY_PASSWORD }}
+
+      - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
           name: meditrack-debug-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+
+      - name: Upload signed release APK
+        if: env.SIGNING_CONFIGURED == 'true' && github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: meditrack-release-apk
+          path: android/app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
