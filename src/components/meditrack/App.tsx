@@ -5,7 +5,7 @@ import { Meds } from "@/components/meditrack/Meds";
 import { Reminders } from "@/components/meditrack/Reminders";
 import { Today } from "@/components/meditrack/Today";
 import { NavProvider, tabOf, useNav } from "@/components/meditrack/nav";
-import { useT } from "@/components/meditrack/ui";
+import { Btn, useT } from "@/components/meditrack/ui";
 import { armAudio } from "@/components/meditrack/sound";
 import { getExactAlarmPermission, getNotifPermission, isNative, requestExactAlarmPermission, requestNotifPermission, type NotifPerm } from "@/lib/native-notify";
 import { useMedi } from "@/lib/meditrack/store";
@@ -235,7 +235,7 @@ function NotificationSetup() {
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/45 px-3 pb-3 sm:items-center">
       <section role="dialog" aria-modal="true" aria-labelledby="notification-setup-title" className="w-full max-w-lg rounded-3xl border border-line bg-surface p-5 shadow-2xl">
         <div className="mb-3 flex size-12 items-center justify-center rounded-2xl bg-primary-soft text-primary">
-          <span className="text-2xl" aria-hidden>♧</span>
+          <span className="text-2xl" aria-hidden>🔔</span>
         </div>
         <h2 id="notification-setup-title" className="font-display text-2xl">{tr("setupNotifTitle")}</h2>
         <p className="mt-2 text-muted">{tr("setupNotifLead")}</p>
