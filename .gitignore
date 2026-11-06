@@ -1,0 +1,13 @@
+# Dependencies and build output
+node_modules/
+dist/
+build/
+.gradle/
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+*.jks
+*.keystore
+android/key.properties
