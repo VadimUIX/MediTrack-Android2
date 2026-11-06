@@ -112,12 +112,10 @@ jobs:
           ANDROID_APP_KEY_ALIAS: ${{ secrets.ANDROID_APP_KEY_ALIAS }}
           ANDROID_APP_KEY_PASSWORD: ${{ secrets.ANDROID_APP_KEY_PASSWORD }}
 
-      - name: Prepare APK filenames
+      - name: Prepare release APK filename
         run: |
-          cp android/app/build/outputs/apk/debug/app-debug.apk android/app/build/outputs/apk/debug/MediTrack-debug.apk
-          if [ -f android/app/build/outputs/apk/release/app-release.apk ]; then
-            cp android/app/build/outputs/apk/release/app-release.apk android/app/build/outputs/apk/release/MediTrack.apk
-          fi
+          test -f android/app/build/outputs/apk/release/app-release.apk
+          cp android/app/build/outputs/apk/release/app-release.apk android/app/build/outputs/apk/release/MediTrack.apk
 
       - name: Upload signed release APK
         if: steps.signing_check.outputs.configured == 'true' && github.event_name != 'pull_request'
