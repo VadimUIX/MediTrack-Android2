@@ -1,9 +1,9 @@
 import { Capacitor } from "@capacitor/core";
 import { LocalNotifications } from "@capacitor/local-notifications";
 import { buildDay } from "@/lib/meditrack/engine";
-import { addDays, atDateTime, inQuiet, todayISO } from "@/lib/meditrack/dates";
+import { addDays, atDateTime, hashStr, inQuiet, todayISO } from "@/lib/meditrack/dates";
 import { doseText } from "@/lib/meditrack/format";
-import { hashStr, type NotifSettings, type Profile, type Medication, type DoseLog, type ScheduleOverride } from "@/lib/meditrack/types";
+import type { NotifSettings, Profile, Medication, DoseLog, ScheduleOverride } from "@/lib/meditrack/types";
 
 export type NotifPerm = "granted" | "denied" | "default" | "unknown";
 
