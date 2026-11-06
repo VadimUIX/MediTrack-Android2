@@ -337,7 +337,10 @@ export function MedForm({ id }: { id?: string }) {
         <input
           className="field"
           value={draft.name}
-          onChange={(e) => patch({ name: e.target.value, grls: e.target.value === draft.name ? draft.grls : undefined })}
+          onChange={(e) => {
+            setNameFocused(true);
+            patch({ name: e.target.value, grls: e.target.value === draft.name ? draft.grls : undefined });
+          }}
           onFocus={() => setNameFocused(true)}
           onBlur={() => setNameFocused(false)}
           onKeyDown={(event) => {
