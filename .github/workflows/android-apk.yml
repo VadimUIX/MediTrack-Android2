@@ -61,6 +61,11 @@ jobs:
       - name: Build mobile web app
         run: npm run build:mobile
 
+      - name: Copy GRLS catalog into Capacitor web assets
+        run: |
+          mkdir -p dist/client
+          cp public/grls-catalog.json dist/client/grls-catalog.json
+
       - name: Sync Capacitor Android project
         run: npx cap sync android
 
