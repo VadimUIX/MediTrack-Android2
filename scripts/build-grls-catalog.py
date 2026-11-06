@@ -54,7 +54,7 @@ with zipfile.ZipFile(ARCHIVE) as archive:
                 record = records.get(key)
                 if record is None:
                     records[key] = {
-                        "r": reg, "n": trade, "i": inn, "f": forms,
+                        "r": reg, "n": trade, "i": inn, "f": forms[:320],
                         "s": status, "e": expiry,
                     }
                 elif forms and forms not in record["f"]:
