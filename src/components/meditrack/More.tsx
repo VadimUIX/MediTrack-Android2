@@ -313,7 +313,7 @@ export function Settings() {
             {exactPerm !== "granted" ? <Btn variant="soft" onClick={() => void askExactAlarm()}>{tr("allowExactAlarm")}</Btn> : null}
           </>
         ) : null}
-        <Btn variant="ghost" onClick={() => { if (isNative()) void showNotification(tr("remindTitle"), tr("testSent"), "meditrack-test-sound", notif.sound, notif.vibrate); else { armAudio(); if (notif.sound) beep(); if (notif.vibrate) navigator.vibrate?.(80); } toast(tr("testSent")); }}>{tr("testNotif")}</Btn>
+        <div className="card grid gap-2">\n          <h3 className="font-semibold">{tr("notifReliabilityTitle")}</h3>\n          <p className="text-sm text-muted">{tr("setupLockScreenHint")}</p>\n          {isNative() ? <p className="text-sm text-muted">{tr("setupXiaomiHint")}</p> : null}\n        </div>\n        <Btn variant="ghost" onClick={() => { if (isNative()) void showNotification(tr("remindTitle"), tr("testSent"), "meditrack-test-sound", notif.sound, notif.vibrate); else { armAudio(); if (notif.sound) beep(); if (notif.vibrate) navigator.vibrate?.(80); } toast(tr("testSent")); }}>{tr("testNotif")}</Btn>
       </section>
       <section className="grid gap-3">
         <h2 className="font-display text-2xl"><LockKeyhole className="mr-2 inline size-5" />{tr("pin")}</h2>
