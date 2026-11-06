@@ -1,5 +1,9 @@
 apply plugin: 'com.android.application'
 
+// Release signing credentials are supplied only by GitHub Actions.
+// Never put keystore files or passwords in the repository.
+def appKeystorePath = System.getenv('ANDROID_APP_KEYSTORE_PATH')
+
 android {
     namespace "app.meditrack.diary"
     compileSdk rootProject.ext.compileSdkVersion
@@ -13,8 +17,20 @@ android {
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        release {
+            if (appKeystorePath) {
+                storeFile file(appKeystorePath)
+                storePassword System.getenv('ANDROID_APP_KEYSTORE_PASSWORD')
+                keyAlias System.getenv('ANDROID_APP_KEY_ALIAS')
+                keyPassword System.getenv('ANDROID_APP_KEY_PASSWORD')
+            }
+        }
+    }
+
     buildTypes {
         release {
+            signingConfig signingConfigs.release
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
