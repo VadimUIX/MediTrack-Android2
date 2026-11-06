@@ -257,12 +257,14 @@ export function Settings() {
   async function askNotif() {
     const result = await requestNotifPermission();
     setPerm(result);
+    if (result === "granted") window.dispatchEvent(new Event("focus"));
     toast(tr("permissionAsked"));
   }
 
   async function askExactAlarm() {
     const result = await requestExactAlarmPermission();
     setExactPerm(result);
+    if (result === "granted") window.dispatchEvent(new Event("focus"));
   }
 
   return (
