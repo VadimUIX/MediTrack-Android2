@@ -4,7 +4,12 @@ import { buildDay, tally, type BuiltSlot } from "@/lib/meditrack/engine";
 import { dayCaption, doseText, formatLong, reasonLabel, statusLabel } from "@/lib/meditrack/format";
 import { activeProfile, useMedi } from "@/lib/meditrack/store";
 import type { SkipReason, SlotViewStatus } from "@/lib/meditrack/types";
+import { registerPlugin } from "@capacitor/core";
+import { toast } from "sonner";
 import { useMemo, useState } from "react";
+
+type PdfLine = { text: string; style?: "title" | "heading" | "body" | "muted" | "tableHeader" | "tableRow" };
+const PdfExport = registerPlugin<{ createAndShare(options: { fileName: string; lines: PdfLine[] }): Promise<{ uri: string }> }>("PdfExport");
 
 const VIEWS: SlotViewStatus[] = ["taken_on_time", "taken_late", "missed", "skipped", "snoozed", "due", "upcoming", "away"];
 
@@ -91,6 +96,42 @@ export function Report() {
   const sum = tally(slots);
   const meds = [...new Map(slots.map((s) => [s.medication.id, s.medication])).values()];
   const misses = slots.filter((s) => s.view === "missed" || s.view === "skipped").slice(0, 40);
+  const [exporting, setExporting] = useState(false);
+
+  const exportPdf = async () => {
+    setExporting(true);
+    const lines: PdfLine[] = [
+      { text: tr("brandFull"), style: "muted" },
+      { text: tr("reportTitle"), style: "title" },
+      { text: `${tr("reportFor")}: ${profile.name}`, style: "body" },
+      { text: `${formatLong(from, lang)} — ${formatLong(end, lang)}`, style: "body" },
+      { text: `${tr("generated")}: ${formatLong(today, lang)}`, style: "muted" },
+      { text: `${tr("adherence")}: ${sum.percent === null ? "—" : `${sum.percent}%`}`, style: "heading" },
+      { text: tr("reportTable"), style: "heading" },
+      { text: `${tr("csvMed")}  |  ${tr("csvDose")}  |  ${tr("adherence")}`, style: "tableHeader" },
+      ...meds.map((m) => {
+        const part = tally(slots.filter((s) => s.medication.id === m.id));
+        return { text: `${m.name}  |  ${doseText(m, lang)}  |  ${part.percent === null ? "—" : `${part.percent}%`}`, style: "tableRow" as const };
+      }),
+      { text: tr("reportMisses"), style: "heading" },
+      ...(misses.length === 0
+        ? [{ text: tr("noneMisses"), style: "body" as const }]
+        : misses.map((s) => ({
+            text: `${s.date} ${s.time} — ${s.medication.name} (${statusLabel(lang, s.view)})${s.log?.skipReason ? ` · ${reasonLabel(lang, s.log.skipReason)}` : ""}${s.log?.note ? ` · ${s.log.note}` : ""}`,
+            style: "body" as const,
+          }))),
+      ...(comment.trim() ? [{ text: tr("reportComment"), style: "heading" as const }, { text: comment.trim(), style: "body" as const }] : []),
+      { text: tr("reportDisclaimer"), style: "muted" },
+    ];
+
+    try {
+      await PdfExport.createAndShare({ fileName: `MediTrack-report-${from}-${end}.pdf`, lines });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : tr("pdfError"));
+    } finally {
+      setExporting(false);
+    }
+  };
 
   return (
     <div className="grid gap-4">
@@ -111,7 +152,7 @@ export function Report() {
           <span className="label">{tr("reportComment")}</span>
           <textarea className="field min-h-24" value={comment} placeholder={tr("reportCommentPh")} onChange={(e) => setComment(e.target.value)} />
         </label>
-        <Btn onClick={() => window.print()}>{tr("printPdf")}</Btn>
+        <Btn onClick={exportPdf} disabled={exporting}>{exporting ? tr("working") : tr("printPdf")}</Btn>
       </div>
       <article className="report">
         <p className="text-sm font-semibold tracking-wide text-primary uppercase">{tr("brandFull")}</p>

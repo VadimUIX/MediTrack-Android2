@@ -1,5 +1,5 @@
 import type { Screen } from "@/lib/meditrack/types";
-import { createContext, useContext, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 
 type Nav = {
   screen: Screen;
@@ -14,6 +14,14 @@ const Ctx = createContext<Nav | null>(null);
 export function NavProvider({ children }: { children: ReactNode }) {
   const [stack, setStack] = useState<Screen[]>([{ name: "today" }]);
   const screen = stack[stack.length - 1] ?? { name: "today" };
+
+  useEffect(() => {
+    const handleAndroidBack = () => {
+      setStack((current) => (current.length > 1 ? current.slice(0, -1) : current));
+    };
+    window.addEventListener("meditrack:android-back", handleAndroidBack);
+    return () => window.removeEventListener("meditrack:android-back", handleAndroidBack);
+  }, []);
   const value: Nav = {
     screen,
     go: (next) => setStack((st) => [...st, next]),
