@@ -9,12 +9,14 @@ import android.os.Bundle;
 import android.provider.Settings;
 
 import androidx.activity.OnBackPressedCallback;
+import androidx.core.splashscreen.SplashScreen;
 
 import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        SplashScreen.installSplashScreen(this);
         createDoseChannels();
         registerPlugin(PdfExportPlugin.class);
         super.onCreate(savedInstanceState);

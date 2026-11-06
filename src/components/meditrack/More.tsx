@@ -11,7 +11,7 @@ import type { Key } from "@/lib/meditrack/i18n";
 import { ChevronRight, Fingerprint, LockKeyhole, Moon, Shield, Sun, Monitor } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { getNotifPermission, isNative, requestNotifPermission, showNotification, type NotifPerm } from "@/lib/native-notify";
+import { getExactAlarmPermission, getNotifPermission, isNative, requestExactAlarmPermission, requestNotifPermission, showNotification, type NotifPerm } from "@/lib/native-notify";
 
 export function More() {
   const tr = useT();
@@ -193,6 +193,7 @@ export function Settings() {
   const resetData = useMedi((s) => s.resetData);
   const hasDemo = useMedi((s) => s.medications.some((m) => m.id.startsWith("demo-")));
   const [perm, setPerm] = useState<NotifPerm>("unknown");
+  const [exactPerm, setExactPerm] = useState<NotifPerm>("unknown");
   const [pinMode, setPinMode] = useState<"off" | "new" | "repeat" | "current">("off");
   const [pin, setPinValue] = useState("");
   const [first, setFirst] = useState("");
@@ -201,6 +202,7 @@ export function Settings() {
 
   useEffect(() => {
     void getNotifPermission().then(setPerm);
+    void getExactAlarmPermission().then(setExactPerm);
     setBioOk(typeof window !== "undefined" && !!window.PublicKeyCredential);
   }, []);
 
@@ -246,6 +248,11 @@ export function Settings() {
     const result = await requestNotifPermission();
     setPerm(result);
     toast(tr("permissionAsked"));
+  }
+
+  async function askExactAlarm() {
+    const result = await requestExactAlarmPermission();
+    setExactPerm(result);
   }
 
   return (
@@ -300,6 +307,12 @@ export function Settings() {
           {perm === "granted" ? tr("notifGranted") : perm === "denied" ? tr("notifDenied") : tr("notifDefault")}
         </p>
         <Btn variant="soft" onClick={() => void askNotif()}>{tr("allowNotif")}</Btn>
+        {isNative() ? (
+          <>
+            <p className="text-sm text-muted">{exactPerm === "granted" ? tr("exactAlarmGranted") : exactPerm === "denied" ? tr("exactAlarmDenied") : tr("exactAlarmUnknown")}</p>
+            {exactPerm !== "granted" ? <Btn variant="soft" onClick={() => void askExactAlarm()}>{tr("allowExactAlarm")}</Btn> : null}
+          </>
+        ) : null}
         <Btn variant="ghost" onClick={() => { if (isNative()) void showNotification(tr("remindTitle"), tr("testSent"), "meditrack-test-sound", notif.sound, notif.vibrate); else { armAudio(); if (notif.sound) beep(); if (notif.vibrate) navigator.vibrate?.(80); } toast(tr("testSent")); }}>{tr("testNotif")}</Btn>
       </section>
       <section className="grid gap-3">

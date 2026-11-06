@@ -4,7 +4,7 @@ import { atDateTime, inQuiet, todayISO } from "@/lib/meditrack/dates";
 import { buildDay, takenKind, type BuiltSlot } from "@/lib/meditrack/engine";
 import { doseText } from "@/lib/meditrack/format";
 import { useMedi } from "@/lib/meditrack/store";
-import { isNative, showNotification } from "@/lib/native-notify";
+import { isNative, showNotification, syncDoseNotifications } from "@/lib/native-notify";
 import { useEffect, useState } from "react";
 
 const STORE = "meditrack-reminder-fires";
@@ -37,6 +37,26 @@ export function Reminders() {
   const [banners, setBanners] = useState<BuiltSlot[]>([]);
 
   useEffect(() => {
+    if (!isNative()) return;
+    const sync = () => {
+      void syncDoseNotifications({
+        profiles, medications, logs, overrides, notif, lang,
+        title: tr("remindTitle"),
+        body: ({ profile, medication, time }) =>
+          tr("notifBody", { name: `${profile.name}: ${medication.name}`, dose: doseText(medication, lang), time }),
+      });
+    };
+    sync();
+    const onVisible = () => { if (document.visibilityState === "visible") sync(); };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", sync);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", sync);
+    };
+  }, [profiles, medications, logs, overrides, notif, lang, tr]);
+
+  useEffect(() => {
     const tick = () => {
       if (!notif.enabled) {
         setBanners([]);
@@ -64,13 +84,15 @@ export function Reminders() {
             fires[key] = { n: rec.n + 1, at: now.getTime() };
             if (!isNative() && notif.sound) beep();
             if (!isNative() && notif.vibrate && typeof navigator !== "undefined") navigator.vibrate?.(120);
-            void showNotification(
-              tr("remindTitle"),
-              tr("notifBody", { name: `${profile.name}: ${slot.medication.name}`, dose: doseText(slot.medication, lang), time: slot.time }),
-              key,
-              notif.sound,
-              notif.vibrate,
-            );
+            if (!isNative()) {
+              void showNotification(
+                tr("remindTitle"),
+                tr("notifBody", { name: `${profile.name}: ${slot.medication.name}`, dose: doseText(slot.medication, lang), time: slot.time }),
+                key,
+                notif.sound,
+                notif.vibrate,
+              );
+            }
           }
           if ((fires[key]?.n ?? rec.n) <= notif.repeatCount + 1) due.push(slot);
         }
