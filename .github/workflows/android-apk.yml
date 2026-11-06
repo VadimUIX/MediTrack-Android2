@@ -83,11 +83,15 @@ jobs:
           ANDROID_APP_KEY_ALIAS: ${{ secrets.ANDROID_APP_KEY_ALIAS }}
           ANDROID_APP_KEY_PASSWORD: ${{ secrets.ANDROID_APP_KEY_PASSWORD }}
 
-      - name: Build debug APK
-        working-directory: android
+      - name: Require release signing configuration
+        if: github.event_name != 'pull_request'
         run: |
-          chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon
+          if [ "$SIGNING_CONFIGURED" != "true" ]; then
+            echo "::error::Release signing secrets are missing. Refusing to publish an unsigned or debug APK."
+            exit 1
+          fi
+        env:
+          SIGNING_CONFIGURED: ${{ steps.signing_check.outputs.configured }}
 
       - name: Prepare release signing key
         if: steps.signing_check.outputs.configured == 'true' && github.event_name != 'pull_request'
@@ -98,7 +102,7 @@ jobs:
           ANDROID_APP_KEYSTORE_BASE64: ${{ secrets.ANDROID_APP_KEYSTORE_BASE64 }}
 
       - name: Build signed release APK
-        if: env.SIGNING_CONFIGURED == 'true' && github.event_name != 'pull_request'
+        if: steps.signing_check.outputs.configured == 'true' && github.event_name != 'pull_request'
         working-directory: android
         run: |
           chmod +x gradlew
@@ -115,15 +119,8 @@ jobs:
             cp android/app/build/outputs/apk/release/app-release.apk android/app/build/outputs/apk/release/MediTrack.apk
           fi
 
-      - name: Upload debug APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: MediTrack-debug
-          path: android/app/build/outputs/apk/debug/MediTrack-debug.apk
-          if-no-files-found: error
-
       - name: Upload signed release APK
-        if: env.SIGNING_CONFIGURED == 'true' && github.event_name != 'pull_request'
+        if: steps.signing_check.outputs.configured == 'true' && github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
           name: MediTrack
