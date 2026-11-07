@@ -79,8 +79,6 @@ object DoseNotificationManager {
 
     @Synchronized
     fun rescheduleSaved(context: Context) {
-        // Notifications themselves are cleared by Android during a reboot; discard stale active IDs.
-        writeActive(context, emptyList())
         if (!canScheduleExactAlarms(context)) return
         val now = System.currentTimeMillis()
         readScheduled(context).forEach { item ->
