@@ -2,7 +2,7 @@ import { FormGlyph, ProfileGlyph } from "@/components/meditrack/glyphs";
 import { Btn, Empty, Modal, useLang, useT } from "@/components/meditrack/ui";
 import { useNav } from "@/components/meditrack/nav";
 import { addDays, atDateTime, todayISO } from "@/lib/meditrack/dates";
-import { buildDay, takenKind, tally, type BuiltSlot } from "@/lib/meditrack/engine";
+import { assessPrn, buildDay, takenKind, tally, type BuiltSlot } from "@/lib/meditrack/engine";
 import { countdown, dayCaption, doseText, formatLong, instructionLabel, statusLabel } from "@/lib/meditrack/format";
 import type { Key } from "@/lib/meditrack/i18n";
 import { activeProfile, useMedi } from "@/lib/meditrack/store";
@@ -19,6 +19,7 @@ export function Today() {
   const [now, setNow] = useState(() => new Date());
   const [sheet, setSheet] = useState<BuiltSlot | null>(null);
   const [oneOff, setOneOff] = useState(false);
+  const [prnMedication, setPrnMedication] = useState<Medication | null>(null);
   const [shift, setShift] = useState(false);
   const [profilesOpen, setProfilesOpen] = useState(false);
   const [hideDemo, setHideDemo] = useState(() => sessionStorage.getItem("mt-demo-hide") === "1");
@@ -49,6 +50,7 @@ export function Today() {
   void minuteKey;
 
   const score = tally(slots);
+  const prnMeds = data.medications.filter((med) => med.profileId === profile.id && med.status === "active" && (med.intakeMode === "prn" || med.intakeMode === "combined"));
   const today = todayISO(now);
   const future = date > today;
   const hero =
@@ -187,7 +189,7 @@ export function Today() {
 
       {future ? <p className="text-muted">{tr("futureLock")}</p> : null}
 
-      {slots.length === 0 ? <Empty title={tr("noPlan")} body={tr("noPlanHint")} /> : null}
+      {slots.length === 0 && prnMeds.length === 0 ? <Empty title={tr("noPlan")} body={tr("noPlanHint")} /> : null}
 
       <ol className="timeline">
         {groups.map(([time, items]) => (
@@ -202,6 +204,27 @@ export function Today() {
         ))}
       </ol>
 
+      {!future && date === today && prnMeds.length > 0 ? (
+        <section className="grid gap-3">
+          <h2 className="font-display text-2xl">{tr("prnTodayTitle")}</h2>
+          {prnMeds.map((med) => {
+            const assessment = assessPrn({ medication: med, logs: data.logs, profileId: profile.id, now });
+            return (
+              <article key={med.id} className="card grid gap-2">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="font-semibold">{med.name}</p>
+                    <p className="text-sm text-muted">{doseText(med, lang)}</p>
+                    <p className="mt-1 text-sm text-muted">{tr("prnTodayTotal", { total: assessment.dailyTotal, unit: med.doseUnit })}</p>
+                    {assessment.lastTakenAt ? <p className="text-sm text-muted">{tr("prnLastTaken", { time: assessment.lastTakenAt.toLocaleTimeString(lang === "ru" ? "ru-RU" : "en-US", { hour: "2-digit", minute: "2-digit" }) })}</p> : null}
+                  </div>
+                  <Btn onClick={() => setPrnMedication(med)}>{tr("prnRecord")}</Btn>
+                </div>
+              </article>
+            );
+          })}
+        </section>
+      ) : null}
       <div className="grid grid-cols-2 gap-2">
         <Btn variant="soft" onClick={() => setOneOff(true)}>
           <Plus className="size-5" />
@@ -214,6 +237,7 @@ export function Today() {
 
       {sheet ? <DoseSheet slot={sheet} date={date} future={future} onClose={() => setSheet(null)} onTaken={() => { markTaken(sheet); setSheet(null); }} /> : null}
       {oneOff ? <OneOff date={date} future={future} onClose={() => setOneOff(false)} /> : null}
+      {prnMedication ? <PrnDoseModal medication={prnMedication} profileId={profile.id} logs={data.logs} onClose={() => setPrnMedication(null)} /> : null}
       {shift ? <Shift date={date} onClose={() => setShift(false)} /> : null}
       {profilesOpen ? <ProfileSwitch onClose={() => setProfilesOpen(false)} /> : null}
     </div>
@@ -410,6 +434,60 @@ function OneOff({ date, future, onClose }: { date: string; future: boolean; onCl
         </label>
         <Btn onClick={() => save(false)}>{tr("planIt")}</Btn>
         {!future ? <Btn variant="soft" onClick={() => save(true)}>{tr("alreadyTaken")}</Btn> : null}
+      </div>
+    </Modal>
+  );
+}
+
+
+function PrnDoseModal({ medication, profileId, logs, onClose }: { medication: Medication; profileId: string; logs: ReturnType<typeof useMedi.getState>["logs"]; onClose: () => void }) {
+  const tr = useT();
+  const lang = useLang();
+  const data = useMedi();
+  const [amount, setAmount] = useState(String(medication.doseAmount));
+  const [note, setNote] = useState("");
+  const now = new Date();
+  const assessment = assessPrn({ medication, logs, profileId, now });
+  const dose = Number(amount.replace(",", "."));
+  const warnings: string[] = [];
+  if (assessment.intervalBlocked && assessment.nextAllowedAt) {
+    warnings.push(tr("prnIntervalWarning", { time: assessment.nextAllowedAt.toLocaleTimeString(lang === "ru" ? "ru-RU" : "en-US", { hour: "2-digit", minute: "2-digit" }) }));
+  }
+  if (medication.prn?.maxDoseAmount != null && dose > medication.prn.maxDoseAmount) {
+    warnings.push(tr("prnSingleWarning", { limit: medication.prn.maxDoseAmount, unit: medication.doseUnit }));
+  }
+  if (medication.prn?.maxDailyDoseAmount != null && assessment.dailyTotal + dose > medication.prn.maxDailyDoseAmount) {
+    warnings.push(tr("prnDailyWarning", { total: assessment.dailyTotal + dose, limit: medication.prn.maxDailyDoseAmount, unit: medication.doseUnit }));
+  }
+  function save() {
+    if (!(dose > 0) || !Number.isFinite(dose)) {
+      toast.error(tr("errDose"));
+      return;
+    }
+    const time = now.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false });
+    data.recordPrnDose({ medicationId: medication.id, profileId, date: todayISO(now), time, doseAmount: dose, note: note.trim() || undefined });
+    toast(tr("marked"));
+    onClose();
+  }
+  return (
+    <Modal title={medication.name} onClose={onClose} closeLabel={tr("close")}>
+      <div className="grid gap-3">
+        <p className="text-muted">{doseText(medication, lang)}</p>
+        <label className="grid gap-1">
+          <span className="label">{tr("prnDoseAmount")} · {medication.doseUnit}</span>
+          <input className="field" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} />
+        </label>
+        <label className="grid gap-1">
+          <span className="label">{tr("prnReasonNote")}</span>
+          <textarea className="field min-h-20" value={note} onChange={(e) => setNote(e.target.value)} />
+        </label>
+        {warnings.length > 0 ? (
+          <div className="rounded-2xl border border-clay bg-clay/10 p-3 text-sm text-clay">
+            {warnings.map((warning) => <p key={warning}>{warning}</p>)}
+            <p className="mt-2">{tr("prnLimitOverrideHint")}</p>
+          </div>
+        ) : null}
+        <Btn block onClick={save}>{tr("prnRecord")}</Btn>
       </div>
     </Modal>
   );
