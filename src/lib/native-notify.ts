@@ -123,7 +123,7 @@ async function performNotificationSync(state: DoseNotificationState): Promise<vo
   });
 
   const now = new Date();
-  const scheduled: Array<{ id: number; title: string; body: string; schedule: { at: Date }; channelId: string; actionTypeId: string; extra: { source: string; medicationId: string; profileId: string; date: string; time: string } }> = [];
+  const scheduled: Array<{ id: number; title: string; body: string; schedule: { at: Date }; channelId: string; actionTypeId: string; extra: { source: string; medicationId: string; profileId: string; date: string; time: string; scheduledTime: string } }> = [];
   const usedIds = new Set<number>();
   const channelId = state.notif.sound
     ? (state.notif.vibrate ? "meditrack_dose_sound_vibrate_v3" : "meditrack_dose_sound_v3")
@@ -148,7 +148,7 @@ async function performNotificationSync(state: DoseNotificationState): Promise<vo
             const id = notificationId(baseKey + "|snooze");
             if (!usedIds.has(id)) {
               usedIds.add(id);
-              scheduled.push({ id, title: state.title, body: doseBody, schedule: { at: snoozeAt }, channelId, actionTypeId: "meditrack-dose-actions-v1", extra: { source: "meditrack-dose", medicationId: medication.id, profileId: profile.id, date, time: slot.baseTime } });
+              scheduled.push({ id, title: state.title, body: doseBody, schedule: { at: snoozeAt }, channelId, actionTypeId: "meditrack-dose-actions-v1", extra: { source: "meditrack-dose", medicationId: medication.id, profileId: profile.id, date, time: slot.baseTime, scheduledTime: slot.time } });
             }
           }
           continue;
@@ -164,7 +164,7 @@ async function performNotificationSync(state: DoseNotificationState): Promise<vo
           const id = notificationId(baseKey + "|repeat|" + repeat);
           if (usedIds.has(id)) continue;
           usedIds.add(id);
-          scheduled.push({ id, title: state.title, body: doseBody, schedule: { at }, channelId, actionTypeId: "meditrack-dose-actions-v1", extra: { source: "meditrack-dose", medicationId: medication.id, profileId: profile.id, date, time: slot.baseTime } });
+          scheduled.push({ id, title: state.title, body: doseBody, schedule: { at }, channelId, actionTypeId: "meditrack-dose-actions-v1", extra: { source: "meditrack-dose", medicationId: medication.id, profileId: profile.id, date, time: slot.baseTime, scheduledTime: slot.time } });
         }
       }
     }
