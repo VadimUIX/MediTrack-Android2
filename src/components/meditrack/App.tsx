@@ -15,17 +15,65 @@ import { CalendarDays, ChevronLeft, History as HistoryIcon, Menu, Pill, House } 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Toaster } from "sonner";
 
+let nativeActionDrain: Promise<void> = Promise.resolve();
+
+function drainNativeDoseActions(): Promise<void> {
+  nativeActionDrain = nativeActionDrain.then(async () => {
+    if (!isNative() || !useMedi.persist.hasHydrated()) return;
+    const actions = await getPendingDoseActions();
+    const acknowledged: string[] = [];
+    for (const event of actions) {
+      const state = useMedi.getState();
+      const medication = state.medications.find((item) => item.id === event.medicationId);
+      if (!medication || !event.eventId || !event.date || !event.time) {
+        if (event.eventId) acknowledged.push(event.eventId);
+        continue;
+      }
+      const actedAt = new Date(event.actedAt || Date.now());
+      if (event.actionId === "taken") {
+        state.markDose({
+          medicationId: event.medicationId,
+          profileId: event.profileId,
+          date: event.date,
+          time: event.time,
+          status: takenKind(event.date, event.scheduledTime || event.time, actedAt, medication.schedule.windowMin),
+          actedAt: actedAt.toISOString(),
+        });
+        acknowledged.push(event.eventId);
+      } else if (event.actionId === "snooze" && event.snoozeUntil) {
+        state.markDose({
+          medicationId: event.medicationId,
+          profileId: event.profileId,
+          date: event.date,
+          time: event.time,
+          status: "snoozed",
+          snoozeUntil: new Date(event.snoozeUntil).toISOString(),
+          actedAt: actedAt.toISOString(),
+        });
+        acknowledged.push(event.eventId);
+      } else {
+        acknowledged.push(event.eventId);
+      }
+    }
+    if (acknowledged.length) await acknowledgeDoseActions(acknowledged);
+  }).catch((error) => {
+    console.error("MediTrack could not apply native notification actions", error);
+  });
+  return nativeActionDrain;
+}
+
 export function App() {
   const [ready, setReady] = useState(false);
   const once = useRef(false);
 
   useEffect(() => {
-    const finish = () => {
+    const finish = async () => {
       if (once.current) return;
       once.current = true;
       const state = useMedi.getState();
       if (state.pinHash) useMedi.setState({ unlocked: false });
-      state.completeExpired();
+      if (isNative()) await drainNativeDoseActions();
+      useMedi.getState().completeExpired();
       setReady(true);
     };
     if (useMedi.persist.hasHydrated()) finish();
@@ -39,70 +87,17 @@ export function App() {
   }, []);
   useEffect(() => {
     if (!isNative()) return;
-    let cancelled = false;
-    let processing = false;
-
-    const drainActions = async () => {
-      if (cancelled || processing || !useMedi.persist.hasHydrated()) return;
-      processing = true;
-      try {
-        const actions = await getPendingDoseActions();
-        const acknowledged: string[] = [];
-        for (const event of actions) {
-          if (cancelled) return;
-          const state = useMedi.getState();
-          const medication = state.medications.find((item) => item.id === event.medicationId);
-          if (!medication || !event.eventId || !event.date || !event.time) {
-            if (event.eventId) acknowledged.push(event.eventId);
-            continue;
-          }
-          const actedAt = new Date(event.actedAt || Date.now());
-          if (event.actionId === "taken") {
-            state.markDose({
-              medicationId: event.medicationId,
-              profileId: event.profileId,
-              date: event.date,
-              time: event.time,
-              status: takenKind(event.date, event.scheduledTime || event.time, actedAt, medication.schedule.windowMin),
-              actedAt: actedAt.toISOString(),
-            });
-            acknowledged.push(event.eventId);
-          } else if (event.actionId === "snooze" && event.snoozeUntil) {
-            state.markDose({
-              medicationId: event.medicationId,
-              profileId: event.profileId,
-              date: event.date,
-              time: event.time,
-              status: "snoozed",
-              snoozeUntil: new Date(event.snoozeUntil).toISOString(),
-              actedAt: actedAt.toISOString(),
-            });
-            acknowledged.push(event.eventId);
-          } else {
-            acknowledged.push(event.eventId);
-          }
-        }
-        if (acknowledged.length) await acknowledgeDoseActions(acknowledged);
-      } catch (error) {
-        console.error("MediTrack could not apply native notification actions", error);
-      } finally {
-        processing = false;
-      }
-    };
-
-    const unsubscribeHydration = useMedi.persist.onFinishHydration(() => { void drainActions(); });
     const onResume = () => {
-      if (document.visibilityState === "visible") void drainActions();
+      if (document.visibilityState === "visible") void drainNativeDoseActions();
     };
+    const unsubscribeHydration = useMedi.persist.onFinishHydration(() => { void drainNativeDoseActions(); });
     window.addEventListener("focus", onResume);
     document.addEventListener("visibilitychange", onResume);
     const interval = window.setInterval(() => {
-      if (document.visibilityState === "visible") void drainActions();
+      if (document.visibilityState === "visible") void drainNativeDoseActions();
     }, 10000);
-    if (useMedi.persist.hasHydrated()) void drainActions();
-
+    if (useMedi.persist.hasHydrated()) void drainNativeDoseActions();
     return () => {
-      cancelled = true;
       unsubscribeHydration();
       window.removeEventListener("focus", onResume);
       document.removeEventListener("visibilitychange", onResume);
