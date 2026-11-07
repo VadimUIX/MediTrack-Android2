@@ -17,7 +17,6 @@ export function More() {
   const tr = useT();
   const { go } = useNav();
   const items = [
-    ["history", tr("historyTitle")],
     ["report", tr("reportTitle")],
     ["profiles", tr("profiles")],
     ["backup", tr("backup")],
