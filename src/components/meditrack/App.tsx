@@ -1,3 +1,4 @@
+import { LocalNotifications } from "@capacitor/local-notifications";
 import { History, Report } from "@/components/meditrack/HistoryReport";
 import { About, Backup, Lock, More, Privacy, ProfileForm, Profiles, Settings } from "@/components/meditrack/More";
 import { MedForm } from "@/components/meditrack/MedForm";
@@ -9,6 +10,7 @@ import { NavProvider, tabOf, useNav } from "@/components/meditrack/nav";
 import { Btn, useT } from "@/components/meditrack/ui";
 import { armAudio } from "@/components/meditrack/sound";
 import { getExactAlarmPermission, getNotifPermission, isNative, requestExactAlarmPermission, requestNotifPermission, type NotifPerm } from "@/lib/native-notify";
+import { takenKind } from "@/lib/meditrack/engine";
 import { useMedi } from "@/lib/meditrack/store";
 import { CalendarDays, ChevronLeft, History as HistoryIcon, Menu, Pill, House } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
@@ -35,6 +37,63 @@ export function App() {
     const arm = () => armAudio();
     window.addEventListener("pointerdown", arm, { once: true });
     return () => window.removeEventListener("pointerdown", arm);
+  }, []);
+  useEffect(() => {
+    if (!isNative()) return;
+    let removeListener: (() => void) | undefined;
+    let cancelled = false;
+    const pending: Array<{ actionId: string; notification: { extra?: unknown } }> = [];
+    const applyAction = (event: { actionId: string; notification: { extra?: unknown } }) => {
+      const extra = event.notification.extra as {
+        source?: string;
+        medicationId?: string;
+        profileId?: string;
+        date?: string;
+        time?: string;
+      } | undefined;
+      if (extra?.source !== "meditrack-dose" || !extra.medicationId || !extra.date || !extra.time) return;
+      const state = useMedi.getState();
+      const medication = state.medications.find((item) => item.id === extra.medicationId);
+      if (!medication) return;
+      if (event.actionId === "taken") {
+        const now = new Date();
+        state.markDose({
+          medicationId: medication.id,
+          profileId: extra.profileId,
+          date: extra.date,
+          time: extra.time,
+          status: takenKind(extra.date, extra.time, now, medication.schedule.windowMin),
+        });
+      } else if (event.actionId === "snooze") {
+        const snoozeMin = state.notif.snoozeMin ?? 15;
+        state.markDose({
+          medicationId: medication.id,
+          profileId: extra.profileId,
+          date: extra.date,
+          time: extra.time,
+          status: "snoozed",
+          snoozeUntil: new Date(Date.now() + snoozeMin * 60000).toISOString(),
+        });
+      }
+    };
+    const unsubscribeHydration = useMedi.persist.onFinishHydration(() => {
+      while (pending.length > 0) {
+        const event = pending.shift();
+        if (event) applyAction(event);
+      }
+    });
+    void LocalNotifications.addListener("localNotificationActionPerformed", (event) => {
+      if (useMedi.persist.hasHydrated()) applyAction(event);
+      else pending.push(event);
+    }).then((handle) => {
+      if (cancelled) void handle.remove();
+      else removeListener = () => { void handle.remove(); };
+    });
+    return () => {
+      cancelled = true;
+      unsubscribeHydration();
+      removeListener?.();
+    };
   }, []);
 
   if (!ready) return <Splash />;
