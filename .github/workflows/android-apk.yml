@@ -113,14 +113,23 @@ jobs:
           ANDROID_APP_KEY_PASSWORD: ${{ secrets.ANDROID_APP_KEY_PASSWORD }}
 
       - name: Prepare release APK filename
+        id: prepare_release_apk
         run: |
           test -f android/app/build/outputs/apk/release/app-release.apk
-          cp android/app/build/outputs/apk/release/app-release.apk android/app/build/outputs/apk/release/MediTrack.apk
+          VERSION_NAME=$(sed -n 's/.*versionName "\([^"]*\)".*/\1/p' android/app/build.gradle | head -n 1)
+          VERSION_CODE=$(sed -n 's/.*versionCode \([0-9][0-9]*\).*/\1/p' android/app/build.gradle | head -n 1)
+          test -n "$VERSION_NAME"
+          test -n "$VERSION_CODE"
+          APK_NAME="MediTrack-v${VERSION_NAME}-${VERSION_CODE}.apk"
+          cp android/app/build/outputs/apk/release/app-release.apk "android/app/build/outputs/apk/release/$APK_NAME"
+          echo "apk_name=$APK_NAME" >> "$GITHUB_OUTPUT"
+          echo "version_name=$VERSION_NAME" >> "$GITHUB_OUTPUT"
+          echo "version_code=$VERSION_CODE" >> "$GITHUB_OUTPUT"
 
       - name: Upload signed release APK
         if: steps.signing_check.outputs.configured == 'true' && github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
-          name: MediTrack
-          path: android/app/build/outputs/apk/release/MediTrack.apk
+          name: MediTrack-v${{ steps.prepare_release_apk.outputs.version_name }}-${{ steps.prepare_release_apk.outputs.version_code }}
+          path: android/app/build/outputs/apk/release/${{ steps.prepare_release_apk.outputs.apk_name }}
           if-no-files-found: error
