@@ -4,12 +4,13 @@ import { MedForm } from "@/components/meditrack/MedForm";
 import { Meds } from "@/components/meditrack/Meds";
 import { Reminders } from "@/components/meditrack/Reminders";
 import { Today } from "@/components/meditrack/Today";
+import { Calendar } from "@/components/meditrack/Calendar";
 import { NavProvider, tabOf, useNav } from "@/components/meditrack/nav";
 import { Btn, useT } from "@/components/meditrack/ui";
 import { armAudio } from "@/components/meditrack/sound";
 import { getExactAlarmPermission, getNotifPermission, isNative, requestExactAlarmPermission, requestNotifPermission, type NotifPerm } from "@/lib/native-notify";
 import { useMedi } from "@/lib/meditrack/store";
-import { CalendarDays, ChevronLeft, Menu, Pill } from "lucide-react";
+import { CalendarDays, ChevronLeft, Clock3, History as HistoryIcon, Menu, Pill, House } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Toaster } from "sonner";
 
@@ -83,11 +84,12 @@ function Shell() {
 function Frame() {
   const tr = useT();
   const { screen, back, reset } = useNav();
-  const rooted = screen.name === "today" || screen.name === "meds" || screen.name === "more";
+  const rooted = screen.name === "today" || screen.name === "calendar" || screen.name === "meds" || screen.name === "history" || screen.name === "more";
   const tab = tabOf(screen);
   const titles: Record<string, string> = {
     med: tr(screen.name === "med" && screen.id ? "formEdit" : "formNew"),
     history: tr("historyTitle"),
+    calendar: tr("calendarTitle"),
     report: tr("reportTitle"),
     profiles: tr("profiles"),
     profile: tr("profiles"),
@@ -110,6 +112,7 @@ function Frame() {
       ) : null}
       <main className="flex-1 px-4 py-4">
         {screen.name === "today" ? <Today /> : null}
+        {screen.name === "calendar" ? <Calendar /> : null}
         {screen.name === "meds" ? <Meds /> : null}
         {screen.name === "med" ? <MedForm id={screen.id} /> : null}
         {screen.name === "history" ? <History /> : null}
@@ -124,8 +127,10 @@ function Frame() {
         <Reminders />
       </main>
       <nav className="tabbar no-print" aria-label={tr("moreTitle")}>
-        <Tab icon={<CalendarDays />} label={tr("navToday")} on={tab === "today"} onClick={() => reset({ name: "today" })} />
+        <Tab icon={<House />} label={tr("navToday")} on={tab === "today"} onClick={() => reset({ name: "today" })} />
+        <Tab icon={<CalendarDays />} label={tr("navCalendar")} on={tab === "calendar"} onClick={() => reset({ name: "calendar" })} />
         <Tab icon={<Pill />} label={tr("navMeds")} on={tab === "meds"} onClick={() => reset({ name: "meds" })} />
+        <Tab icon={<HistoryIcon />} label={tr("navHistory")} on={tab === "history"} onClick={() => reset({ name: "history" })} />
         <Tab icon={<Menu />} label={tr("navMore")} on={tab === "more"} onClick={() => reset({ name: "more" })} />
       </nav>
       <NotificationSetup />
