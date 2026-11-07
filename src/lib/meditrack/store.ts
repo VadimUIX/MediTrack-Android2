@@ -55,6 +55,7 @@ export type MediState = {
     time: string;
     status: DoseStatus;
     snoozeUntil?: string;
+    actedAt?: string;
     skipReason?: SkipReason;
     note?: string;
     profileId?: string;
@@ -199,7 +200,7 @@ export const useMedi = create<MediState>()(
             date: entry.date,
             time: entry.time,
             status: entry.status,
-            actedAt: new Date().toISOString(),
+            actedAt: entry.actedAt ?? new Date().toISOString(),
             snoozeUntil: entry.snoozeUntil,
             skipReason: entry.skipReason,
             note: entry.note,
