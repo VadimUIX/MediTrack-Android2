@@ -184,7 +184,7 @@ export const useMedi = create<MediState>()(
       markDose: (entry) =>
         set((s) => {
           const profileId = entry.profileId ?? s.medications.find((m) => m.id === entry.medicationId)?.profileId ?? s.activeProfileId;
-          const idx = s.logs.findIndex((l) => l.medicationId === entry.medicationId && l.date === entry.date && l.time === entry.time);
+          const idx = s.logs.findIndex((l) => l.medicationId === entry.medicationId && l.date === entry.date && l.time === entry.time && l.kind !== "prn");
           const prev = idx >= 0 ? s.logs[idx] : undefined;
           const med = s.medications.find((m) => m.id === entry.medicationId);
           let medications = s.medications;
@@ -237,7 +237,7 @@ export const useMedi = create<MediState>()(
         }),
       clearDose: (medicationId, date, time) =>
         set((s) => {
-          const prev = s.logs.find((l) => l.medicationId === medicationId && l.date === date && l.time === time);
+          const prev = s.logs.find((l) => l.medicationId === medicationId && l.date === date && l.time === time && l.kind !== "prn");
           if (!prev) return s;
           const med = s.medications.find((m) => m.id === medicationId);
           let medications = s.medications;
