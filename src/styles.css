@@ -311,8 +311,8 @@ textarea.field { padding-top: 0.7rem; }
   position: sticky;
   bottom: 0;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.15rem;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.08rem;
   border-top: 1px solid var(--line);
   background: color-mix(in srgb, var(--surface) 92%, transparent);
   padding: 0.35rem 0.35rem max(0.45rem, env(safe-area-inset-bottom));
@@ -328,7 +328,7 @@ textarea.field { padding-top: 0.7rem; }
   background: transparent;
   color: var(--muted);
   font: inherit;
-  font-size: 0.82rem;
+  font-size: 0.72rem;
   font-weight: 650;
 }
 .tab svg { width: 1.35rem; height: 1.35rem; }
@@ -393,3 +393,21 @@ ul .heat { display: inline-block; width: 0.8rem; height: 0.8rem; vertical-align:
   body { background: white; }
   .sheet { box-shadow: none; max-width: none; }
 }
+
+
+.calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 0.3rem; }
+.calendar-weekday { padding: 0.25rem 0; color: var(--muted); text-align: center; font-size: 0.78rem; font-weight: 700; }
+.calendar-day { position: relative; display: grid; min-height: 2.8rem; place-items: center; border: 1px solid transparent; border-radius: 0.8rem; background: transparent; color: var(--ink); font: inherit; font-weight: 650; }
+.calendar-day-out { color: var(--muted); opacity: 0.48; }
+.calendar-day-today { border-color: var(--primary); }
+.calendar-day-selected { background: var(--primary-soft); color: var(--primary); border-color: var(--primary); }
+.calendar-dot { position: absolute; bottom: 0.28rem; width: 0.32rem; height: 0.32rem; border-radius: 999px; background: var(--muted); }
+.calendar-dot-good { background: var(--primary); }
+.calendar-dot-mid { background: var(--warn); }
+.calendar-dot-bad { background: var(--bad); }
+.calendar-dot-wait { background: var(--info); }
+.calendar-dot-none { display: none; }
+.calendar-legend { display: flex; flex-wrap: wrap; gap: 0.55rem 0.85rem; color: var(--muted); font-size: 0.82rem; }
+.calendar-legend span { display: inline-flex; align-items: center; gap: 0.35rem; }
+.calendar-legend i { width: 0.55rem; height: 0.55rem; border-radius: 999px; }
+@media (max-width: 360px) { .tab { font-size: 0.66rem; } .tab svg { width: 1.2rem; height: 1.2rem; } .calendar-day { min-height: 2.45rem; } }
