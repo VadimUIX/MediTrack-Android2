@@ -379,6 +379,7 @@ const dict = {
   prnTodayTotal: { ru: "Сегодня принято: {total} {unit}", en: "Taken today: {total} {unit}" },
   prnLastTaken: { ru: "Последний приём: {time}", en: "Last intake: {time}" },
   prnNoLimits: { ru: "Ограничения не заданы", en: "No limits set" },
+  prnLimitOverrideHint: { ru: "Это предупреждение, а не блокировка. Фиксируйте фактически принятый объём и свяжитесь с врачом или фармацевтом, если есть сомнения.", en: "This is a warning, not a block. Record what was actually taken and contact a clinician or pharmacist if unsure." },
   schedule: { ru: "Расписание", en: "Schedule" },
   related: { ru: "Связи", en: "Links" },
   photoAlt: { ru: "Фото препарата", en: "Medicine photo" },
