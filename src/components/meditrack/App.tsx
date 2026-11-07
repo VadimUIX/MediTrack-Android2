@@ -178,7 +178,7 @@ function Frame() {
           <p className="font-display text-2xl">{titles[screen.name] ?? tr("brand")}</p>
         </div>
       ) : null}
-      <main className="flex-1 px-4 py-4">
+      <main className="app-main px-4 py-4">
         {screen.name === "today" ? <Today /> : null}
         {screen.name === "calendar" ? <Calendar /> : null}
         {screen.name === "meds" ? <Meds /> : null}
