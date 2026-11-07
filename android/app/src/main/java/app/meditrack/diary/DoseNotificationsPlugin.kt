@@ -67,13 +67,13 @@ class DoseNotificationsPlugin : Plugin() {
         }
         try {
             val intent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply {
-                data = Uri.parse("package:$packageName")
+                data = Uri.parse("package:${context.packageName}")
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
             activity.startActivity(intent)
             call.resolve()
         } catch (error: Exception) {
-            call.reject("Не удалось открыть настройки точных будильников.", error)
+            call.reject("Не удалось открыть настройки точных будильников: ${error.message}")
         }
     }
 }
