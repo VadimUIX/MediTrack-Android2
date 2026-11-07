@@ -10,7 +10,7 @@ import { Btn, useT } from "@/components/meditrack/ui";
 import { armAudio } from "@/components/meditrack/sound";
 import { getExactAlarmPermission, getNotifPermission, isNative, requestExactAlarmPermission, requestNotifPermission, type NotifPerm } from "@/lib/native-notify";
 import { useMedi } from "@/lib/meditrack/store";
-import { CalendarDays, ChevronLeft, Clock3, History as HistoryIcon, Menu, Pill, House } from "lucide-react";
+import { CalendarDays, ChevronLeft, History as HistoryIcon, Menu, Pill, House } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Toaster } from "sonner";
 
