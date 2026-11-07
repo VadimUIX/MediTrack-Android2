@@ -257,6 +257,8 @@ const dict = {
   notifSound: { ru: "Звук", en: "Sound" },
   notifVibrate: { ru: "Вибрация", en: "Vibration" },
   repeatEvery: { ru: "Повторять через", en: "Repeat after" },
+  snoozeAfter: { ru: "Отложить напоминание на", en: "Snooze reminder for" },
+  snoozeHint: { ru: "Кнопка «Отложить» перенесёт только выбранный приём и не отметит его как пропущенный.", en: "Snooze postpones only this dose and does not mark it as missed." },
   repeatTimes: { ru: "Сколько повторов", en: "How many repeats" },
   quiet: { ru: "Тихие часы", en: "Quiet hours" },
   quietFrom: { ru: "С", en: "From" },
