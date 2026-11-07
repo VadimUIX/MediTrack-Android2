@@ -1,4 +1,4 @@
-import { Capacitor } from "@capacitor/core";
+import { Capacitor, registerPlugin } from "@capacitor/core";
 import { LocalNotifications } from "@capacitor/local-notifications";
 import { buildDay } from "@/lib/meditrack/engine";
 import { addDays, atDateTime, hashStr, inQuiet, todayISO } from "@/lib/meditrack/dates";
@@ -6,6 +6,47 @@ import { doseText } from "@/lib/meditrack/format";
 import type { NotifSettings, Profile, Medication, DoseLog, ScheduleOverride } from "@/lib/meditrack/types";
 
 export type NotifPerm = "granted" | "denied" | "default" | "unknown";
+
+type NativeDoseNotification = {
+  id: number;
+  at: number;
+  doseKey: string;
+  title: string;
+  body: string;
+  channelId: string;
+  medicationId: string;
+  profileId: string;
+  date: string;
+  time: string;
+  scheduledTime: string;
+};
+
+export type NativeDoseAction = {
+  eventId: string;
+  actionId: "taken" | "snooze";
+  medicationId: string;
+  profileId: string;
+  date: string;
+  time: string;
+  scheduledTime: string;
+  actedAt: number;
+  snoozeUntil?: number;
+};
+
+interface DoseNotificationsPlugin {
+  schedule(options: {
+    notifications: NativeDoseNotification[];
+    snoozeMin: number;
+    takenLabel: string;
+    snoozeLabel: string;
+  }): Promise<{ scheduled: number; exactAlarmPermission: boolean }>;
+  getPendingActions(): Promise<{ actions: NativeDoseAction[] }>;
+  acknowledgeActions(options: { eventIds: string[] }): Promise<void>;
+  checkExactAlarmPermission(): Promise<{ granted: boolean }>;
+  openExactAlarmSettings(): Promise<void>;
+}
+
+const DoseNotifications = registerPlugin<DoseNotificationsPlugin>("DoseNotifications");
 
 export function isNative(): boolean {
   return typeof window !== "undefined" && Capacitor.isNativePlatform();
@@ -64,10 +105,6 @@ export async function showNotification(title: string, body: string, key: string,
   }
 }
 
-
-const SCHEDULED_IDS_KEY = "meditrack-native-dose-notification-ids";
-let scheduleQueue: Promise<void> = Promise.resolve();
-
 type DoseNotificationState = {
   profiles: Profile[];
   medications: Medication[];
@@ -81,49 +118,34 @@ type DoseNotificationState = {
   body: (args: { profile: Profile; medication: Medication; time: string }) => string;
 };
 
-function notificationId(key: string): number {
-  return (hashStr(key) % 2147483646) + 1;
-}
+let scheduleQueue: Promise<void> = Promise.resolve();
 
 async function performNotificationSync(state: DoseNotificationState): Promise<void> {
   if (!isNative()) return;
 
-  let oldIds: number[] = [];
-  try {
-    const raw = localStorage.getItem(SCHEDULED_IDS_KEY);
-    oldIds = raw ? (JSON.parse(raw) as number[]) : [];
-  } catch {
-    oldIds = [];
+  if (!state.notif.enabled) {
+    await DoseNotifications.schedule({
+      notifications: [],
+      snoozeMin: state.notif.snoozeMin ?? 15,
+      takenLabel: state.takenLabel,
+      snoozeLabel: state.snoozeLabel,
+    });
+    return;
   }
-
-  if (oldIds.length) {
-    try {
-      const pending = await LocalNotifications.getPending();
-      const pendingIds = new Set(pending.notifications.map((item) => item.id));
-      const toCancel = oldIds.filter((id) => pendingIds.has(id)).map((id) => ({ id }));
-      if (toCancel.length) await LocalNotifications.cancel({ notifications: toCancel });
-    } catch {
-      // Continue with a fresh schedule; old alarms retain their original expiry.
-    }
-  }
-  localStorage.removeItem(SCHEDULED_IDS_KEY);
-  if (!state.notif.enabled) return;
 
   const permission = await LocalNotifications.checkPermissions();
-  if (permission.display !== "granted") return;
-
-  await LocalNotifications.registerActionTypes({
-    types: [{
-      id: "meditrack-dose-actions-v1",
-      actions: [
-        { id: "taken", title: state.takenLabel },
-        { id: "snooze", title: state.snoozeLabel },
-      ],
-    }],
-  });
+  if (permission.display !== "granted") {
+    await DoseNotifications.schedule({
+      notifications: [],
+      snoozeMin: state.notif.snoozeMin ?? 15,
+      takenLabel: state.takenLabel,
+      snoozeLabel: state.snoozeLabel,
+    });
+    return;
+  }
 
   const now = new Date();
-  const scheduled: Array<{ id: number; title: string; body: string; schedule: { at: Date }; channelId: string; actionTypeId: string; extra: { source: string; medicationId: string; profileId: string; date: string; time: string; scheduledTime: string } }> = [];
+  const scheduled: NativeDoseNotification[] = [];
   const usedIds = new Set<number>();
   const channelId = state.notif.sound
     ? (state.notif.vibrate ? "meditrack_dose_sound_vibrate_v3" : "meditrack_dose_sound_v3")
@@ -136,6 +158,7 @@ async function performNotificationSync(state: DoseNotificationState): Promise<vo
       for (const slot of slots) {
         if (slot.view === "away" || slot.view === "taken_on_time" || slot.view === "taken_late" || slot.view === "skipped") continue;
         const medication = slot.medication;
+        const doseKey = `${medication.id}|${date}|${slot.baseTime}`;
         const baseKey = `${profile.id}|${medication.id}|${date}|${slot.baseTime}`;
         const quietAt = (at: Date) => state.notif.quietEnabled && !medication.critical && inQuiet(at, state.notif.quietFrom, state.notif.quietTo);
         const doseBody = state.body({ profile, medication, time: slot.time });
@@ -145,10 +168,13 @@ async function performNotificationSync(state: DoseNotificationState): Promise<vo
         if (slot.view === "snoozed" && slot.log?.snoozeUntil) {
           const snoozeAt = new Date(slot.log.snoozeUntil);
           if (snoozeAt.getTime() > now.getTime() && snoozeAt.getTime() <= doseAt.getTime() + 24 * 60 * 60000 && !quietAt(snoozeAt)) {
-            const id = notificationId(baseKey + "|snooze");
+            const id = hashId(baseKey + "|snooze");
             if (!usedIds.has(id)) {
               usedIds.add(id);
-              scheduled.push({ id, title: state.title, body: doseBody, schedule: { at: snoozeAt }, channelId, actionTypeId: "meditrack-dose-actions-v1", extra: { source: "meditrack-dose", medicationId: medication.id, profileId: profile.id, date, time: slot.baseTime, scheduledTime: slot.time } });
+              scheduled.push({
+                id, at: snoozeAt.getTime(), doseKey, title: state.title, body: doseBody, channelId,
+                medicationId: medication.id, profileId: profile.id, date, time: slot.baseTime, scheduledTime: slot.time,
+              });
             }
           }
           continue;
@@ -161,36 +187,55 @@ async function performNotificationSync(state: DoseNotificationState): Promise<vo
           if (fireAt > lastAllowed) break;
           const at = new Date(fireAt);
           if (quietAt(at)) continue;
-          const id = notificationId(baseKey + "|repeat|" + repeat);
+          const id = hashId(baseKey + "|repeat|" + repeat);
           if (usedIds.has(id)) continue;
           usedIds.add(id);
-          scheduled.push({ id, title: state.title, body: doseBody, schedule: { at }, channelId, actionTypeId: "meditrack-dose-actions-v1", extra: { source: "meditrack-dose", medicationId: medication.id, profileId: profile.id, date, time: slot.baseTime, scheduledTime: slot.time } });
+          scheduled.push({
+            id, at: fireAt, doseKey, title: state.title, body: doseBody, channelId,
+            medicationId: medication.id, profileId: profile.id, date, time: slot.baseTime, scheduledTime: slot.time,
+          });
         }
       }
     }
   }
 
-  scheduled.sort((a, b) => a.schedule.at.getTime() - b.schedule.at.getTime());
-  const newIds: number[] = [];
-  for (let start = 0; start < scheduled.length; start += 50) {
-    const result = await LocalNotifications.schedule({ notifications: scheduled.slice(start, start + 50) });
-    newIds.push(...result.notifications.map((item) => item.id));
-    localStorage.setItem(SCHEDULED_IDS_KEY, JSON.stringify(newIds));
-  }
+  scheduled.sort((a, b) => a.at - b.at);
+  await DoseNotifications.schedule({
+    notifications: scheduled,
+    snoozeMin: state.notif.snoozeMin ?? 15,
+    takenLabel: state.takenLabel,
+    snoozeLabel: state.snoozeLabel,
+  });
 }
 
 export function syncDoseNotifications(state: DoseNotificationState): Promise<void> {
   scheduleQueue = scheduleQueue.then(() => performNotificationSync(state)).catch((error) => {
-    console.error("MediTrack notification scheduling failed", error);
+    console.error("MediTrack native notification scheduling failed", error);
   });
   return scheduleQueue;
+}
+
+export async function getPendingDoseActions(): Promise<NativeDoseAction[]> {
+  if (!isNative()) return [];
+  try {
+    const result = await DoseNotifications.getPendingActions();
+    return Array.isArray(result.actions) ? result.actions : [];
+  } catch (error) {
+    console.error("MediTrack could not read pending notification actions", error);
+    return [];
+  }
+}
+
+export async function acknowledgeDoseActions(eventIds: string[]): Promise<void> {
+  if (!isNative() || !eventIds.length) return;
+  await DoseNotifications.acknowledgeActions({ eventIds });
 }
 
 export async function getExactAlarmPermission(): Promise<NotifPerm> {
   if (!isNative()) return "granted";
   try {
-    const result = await LocalNotifications.checkExactNotificationSetting();
-    return result.exact_alarm === "granted" ? "granted" : "denied";
+    const result = await DoseNotifications.checkExactAlarmPermission();
+    return result.granted ? "granted" : "denied";
   } catch {
     return "unknown";
   }
@@ -199,8 +244,8 @@ export async function getExactAlarmPermission(): Promise<NotifPerm> {
 export async function requestExactAlarmPermission(): Promise<NotifPerm> {
   if (!isNative()) return "granted";
   try {
-    const result = await LocalNotifications.changeExactNotificationSetting();
-    return result.exact_alarm === "granted" ? "granted" : "denied";
+    await DoseNotifications.openExactAlarmSettings();
+    return await getExactAlarmPermission();
   } catch {
     return "unknown";
   }
