@@ -133,6 +133,7 @@ export type NotifSettings = {
   sound: boolean;
   vibrate: boolean;
   repeatMin: 5 | 10 | 15 | 30;
+  snoozeMin: 5 | 10 | 15 | 30;
   repeatCount: number;
   quietEnabled: boolean;
   quietFrom: string;
