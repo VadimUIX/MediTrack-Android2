@@ -113,7 +113,7 @@ export function buildDay(args: {
     for (const baseTime of med.schedule.times) {
       const resolved = resolveTime(baseTime, ov);
       if (resolved.cancelled) continue;
-      const log = args.logs.find((l) => l.medicationId === med.id && l.date === args.date && l.time === baseTime);
+      const log = args.logs.find((l) => l.medicationId === med.id && l.date === args.date && l.time === baseTime && l.kind !== "prn");
       const view = computeView({
         date: args.date,
         time: resolved.time,
