@@ -19,6 +19,7 @@ public class MainActivity extends BridgeActivity {
         SplashScreen.installSplashScreen(this);
         createDoseChannels();
         registerPlugin(PdfExportPlugin.class);
+        registerPlugin(DoseNotificationsPlugin.class);
         super.onCreate(savedInstanceState);
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override
