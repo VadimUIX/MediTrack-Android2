@@ -370,6 +370,7 @@ const dict = {
   prnMaxDoseError: { ru: "Максимальная разовая доза не может быть меньше обычной дозы.", en: "Maximum single dose cannot be lower than the default dose." },
   prnDailyLimitError: { ru: "Суточный предел не может быть меньше максимальной разовой дозы.", en: "Daily limit cannot be lower than the maximum single dose." },
   prnTodayTitle: { ru: "По требованию", en: "As needed" },
+  prnHistoryTitle: { ru: "Приёмы по требованию", en: "As-needed doses" },
   prnRecord: { ru: "Зафиксировать приём", en: "Record dose" },
   prnDoseAmount: { ru: "Фактически принятая доза", en: "Amount actually taken" },
   prnReasonNote: { ru: "Причина или заметка", en: "Reason or note" },
