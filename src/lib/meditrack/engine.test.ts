@@ -137,6 +137,7 @@ test("PRN assessment calculates interval and daily amount from PRN logs only", (
     prn: { minIntervalMinutes: 240, maxDoseAmount: 500, maxDailyDoseAmount: 1000 },
     doseAmount: 500,
     doseUnit: "мг",
+    schedule: { times: [], dayRule: { kind: "daily" }, windowMin: 30 },
   });
   const logs = [
     {
