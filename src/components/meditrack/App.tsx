@@ -50,6 +50,7 @@ export function App() {
         profileId?: string;
         date?: string;
         time?: string;
+        scheduledTime?: string;
       } | undefined;
       if (extra?.source !== "meditrack-dose" || !extra.medicationId || !extra.date || !extra.time) return;
       const state = useMedi.getState();
@@ -62,7 +63,7 @@ export function App() {
           profileId: extra.profileId,
           date: extra.date,
           time: extra.time,
-          status: takenKind(extra.date, extra.time, now, medication.schedule.windowMin),
+          status: takenKind(extra.date, extra.scheduledTime ?? extra.time, now, medication.schedule.windowMin),
         });
       } else if (event.actionId === "snooze") {
         const snoozeMin = state.notif.snoozeMin ?? 15;
