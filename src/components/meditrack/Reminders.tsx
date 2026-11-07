@@ -1,4 +1,5 @@
 import { beep } from "@/components/meditrack/sound";
+import { LocalNotifications } from "@capacitor/local-notifications";
 import { Btn, useLang, useT } from "@/components/meditrack/ui";
 import { atDateTime, inQuiet, todayISO } from "@/lib/meditrack/dates";
 import { buildDay, takenKind, type BuiltSlot } from "@/lib/meditrack/engine";
@@ -38,10 +39,58 @@ export function Reminders() {
 
   useEffect(() => {
     if (!isNative()) return;
+    let removeListener: (() => void) | undefined;
+    let cancelled = false;
+    void LocalNotifications.addListener("localNotificationActionPerformed", ({ actionId, notification }) => {
+      const extra = notification.extra as {
+        source?: string;
+        medicationId?: string;
+        profileId?: string;
+        date?: string;
+        time?: string;
+      } | undefined;
+      if (extra?.source !== "meditrack-dose" || !extra.medicationId || !extra.date || !extra.time) return;
+      const state = useMedi.getState();
+      const medication = state.medications.find((item) => item.id === extra.medicationId);
+      if (!medication) return;
+      if (actionId === "taken") {
+        const now = new Date();
+        state.markDose({
+          medicationId: medication.id,
+          profileId: extra.profileId,
+          date: extra.date,
+          time: extra.time,
+          status: takenKind(extra.date, extra.time, now, medication.schedule.windowMin),
+        });
+      } else if (actionId === "snooze") {
+        const snoozeMin = state.notif.snoozeMin ?? 15;
+        state.markDose({
+          medicationId: medication.id,
+          profileId: extra.profileId,
+          date: extra.date,
+          time: extra.time,
+          status: "snoozed",
+          snoozeUntil: new Date(Date.now() + snoozeMin * 60000).toISOString(),
+        });
+      }
+    }).then((handle) => {
+      if (cancelled) void handle.remove();
+      else removeListener = () => { void handle.remove(); };
+    });
+    return () => {
+      cancelled = true;
+      removeListener?.();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isNative()) return;
     const sync = () => {
       void syncDoseNotifications({
         profiles, medications, logs, overrides, notif, lang,
         title: tr("remindTitle"),
+        takenLabel: tr("takenBtn"),
+        snoozeLabel: tr("snooze"),
         body: ({ profile, medication, time }) =>
           tr("notifBody", { name: `${profile.name}: ${medication.name}`, dose: doseText(medication, lang), time }),
       });
@@ -135,7 +184,7 @@ export function Reminders() {
                   date: slot.date,
                   time: slot.baseTime,
                   status: "snoozed",
-                  snoozeUntil: new Date(Date.now() + 10 * 60000).toISOString(),
+                  snoozeUntil: new Date(Date.now() + (notif.snoozeMin ?? 15) * 60000).toISOString(),
                 })
               }
             >
