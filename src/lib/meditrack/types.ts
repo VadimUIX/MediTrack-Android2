@@ -141,6 +141,7 @@ export type NotifSettings = {
 
 export type Screen =
   | { name: "today"; date?: string }
+  | { name: "calendar" }
   | { name: "meds" }
   | { name: "med"; id?: string }
   | { name: "history" }
