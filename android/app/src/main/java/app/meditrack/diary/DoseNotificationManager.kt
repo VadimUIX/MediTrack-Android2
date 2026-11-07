@@ -18,6 +18,7 @@ import java.util.UUID
 object DoseNotificationManager {
     private const val PREFS = "meditrack_native_dose_notifications"
     private const val KEY_SCHEDULED = "scheduled"
+    private const val KEY_ACTIVE = "active_notifications"
     private const val KEY_ACTIONS = "actions"
     private const val KEY_SNOOZE_MIN = "snooze_min"
     private const val KEY_TAKEN_LABEL = "taken_label"
@@ -43,6 +44,18 @@ object DoseNotificationManager {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val previous = readScheduled(context)
         previous.forEach { cancelAlarm(context, it.optInt("id")) }
+        val nextDoseKeys = (0 until notifications.length())
+            .mapNotNull { notifications.optJSONObject(it)?.optString("doseKey") }
+            .toSet()
+        val active = readActive(context)
+        val retainedActive = active.filter { record ->
+            if (nextDoseKeys.contains(record.optString("doseKey"))) true
+            else {
+                (context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).cancel(record.optInt("id"))
+                false
+            }
+        }
+        writeActive(context, retainedActive)
 
         prefs.edit()
             .putString(KEY_SCHEDULED, notifications.toString())
@@ -66,6 +79,8 @@ object DoseNotificationManager {
 
     @Synchronized
     fun rescheduleSaved(context: Context) {
+        // Notifications themselves are cleared by Android during a reboot; discard stale active IDs.
+        writeActive(context, emptyList())
         if (!canScheduleExactAlarms(context)) return
         val now = System.currentTimeMillis()
         readScheduled(context).forEach { item ->
@@ -85,6 +100,20 @@ object DoseNotificationManager {
         records.forEach { array.put(it) }
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .edit().putString(KEY_SCHEDULED, array.toString()).apply()
+    }
+
+    private fun readActive(context: Context): List<JSONObject> {
+        val raw = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .getString(KEY_ACTIVE, "[]") ?: "[]"
+        val array = try { JSONArray(raw) } catch (_: Exception) { JSONArray() }
+        return (0 until array.length()).mapNotNull { array.optJSONObject(it) }
+    }
+
+    private fun writeActive(context: Context, records: List<JSONObject>) {
+        val array = JSONArray()
+        records.forEach { array.put(it) }
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit().putString(KEY_ACTIVE, array.toString()).apply()
     }
 
     private fun alarmPendingIntent(context: Context, record: JSONObject): PendingIntent {
@@ -142,20 +171,32 @@ object DoseNotificationManager {
 
     @Synchronized
     fun onAlarmDelivered(context: Context, id: Int) {
+        val delivered = readScheduled(context).firstOrNull { it.optInt("id") == id }
         writeScheduled(context, readScheduled(context).filter { it.optInt("id") != id })
+        if (delivered != null) {
+            val active = readActive(context).filter { it.optInt("id") != id } + delivered
+            writeActive(context, active)
+        }
     }
 
     @Synchronized
     fun cancelDose(context: Context, doseKey: String) {
+        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         val remaining = readScheduled(context).filter { record ->
             if (record.optString("doseKey") == doseKey) {
                 cancelAlarm(context, record.optInt("id"))
-                val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-                manager.cancel(record.optInt("id"))
+                notificationManager.cancel(record.optInt("id"))
                 false
             } else true
         }
         writeScheduled(context, remaining)
+        val activeRemaining = readActive(context).filter { record ->
+            if (record.optString("doseKey") == doseKey) {
+                notificationManager.cancel(record.optInt("id"))
+                false
+            } else true
+        }
+        writeActive(context, activeRemaining)
     }
 
     @Synchronized
