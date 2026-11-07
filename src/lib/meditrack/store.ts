@@ -82,6 +82,7 @@ const defaultNotif: NotifSettings = {
   sound: true,
   vibrate: true,
   repeatMin: 10,
+  snoozeMin: 15,
   repeatCount: 3,
   quietEnabled: false,
   quietFrom: "22:30",
