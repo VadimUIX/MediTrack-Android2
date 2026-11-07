@@ -58,6 +58,7 @@ export function doseText(med: Medication, lang: Lang): string {
 }
 
 export function scheduleLine(med: Medication, lang: Lang): string {
+  if (med.intakeMode === "prn") return t(lang, "modePrn");
   const rule = med.schedule.dayRule;
   let when = "";
   switch (rule.kind) {
@@ -89,7 +90,8 @@ export function scheduleLine(med: Medication, lang: Lang): string {
     default:
       when = "";
   }
-  return `${when} · ${med.schedule.times.join(", ")} · ${t(lang, "windowLabel", { n: med.schedule.windowMin })}`;
+  const mode = med.intakeMode === "combined" ? `${t(lang, "modeCombined")} · ` : "";
+  return `${mode}${when} · ${med.schedule.times.join(", ")} · ${t(lang, "windowLabel", { n: med.schedule.windowMin })}`;
 }
 
 export function countdown(ms: number, lang: Lang): string {

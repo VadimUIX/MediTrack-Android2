@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildDay, ruleMatches, tally } from "./engine.ts";
+import { assessPrn, buildDay, ruleMatches, tally } from "./engine.ts";
 import type { Medication, Profile } from "./types.ts";
 
 const profile: Profile = {
@@ -110,4 +110,67 @@ test("slots, window, overrides and tally", () => {
   const t = tally(missed);
   assert.equal(t.taken, 1);
   assert.equal(t.percent, 100);
+});
+
+
+test("PRN-only medicines do not create scheduled slots", () => {
+  const prn = course({
+    id: "prn",
+    intakeMode: "prn",
+    schedule: { times: [], dayRule: { kind: "daily" }, windowMin: 30 },
+  });
+  const slots = buildDay({
+    date: "2026-11-05",
+    now: new Date(2026, 10, 5, 10, 0),
+    profile,
+    medications: [prn],
+    logs: [],
+    overrides: [],
+  });
+  assert.equal(slots.length, 0);
+});
+
+test("PRN assessment calculates interval and daily amount from PRN logs only", () => {
+  const prn = course({
+    id: "prn",
+    intakeMode: "prn",
+    prn: { minIntervalMinutes: 240, maxDoseAmount: 500, maxDailyDoseAmount: 1000 },
+    doseAmount: 500,
+    doseUnit: "мг",
+    schedule: { times: [], dayRule: { kind: "daily" }, windowMin: 30 },
+  });
+  const logs = [
+    {
+      id: "prn-log",
+      profileId: "p",
+      medicationId: "prn",
+      date: "2026-11-05",
+      time: "08:00",
+      status: "taken_on_time" as const,
+      actedAt: new Date(2026, 10, 5, 8, 0).toISOString(),
+      kind: "prn" as const,
+      doseAmount: 500,
+      doseUnit: "мг",
+    },
+    {
+      id: "scheduled-log",
+      profileId: "p",
+      medicationId: "prn",
+      date: "2026-11-05",
+      time: "09:00",
+      status: "taken_on_time" as const,
+      kind: "scheduled" as const,
+      doseAmount: 500,
+    },
+  ];
+  const assessment = assessPrn({
+    medication: prn,
+    logs,
+    profileId: "p",
+    now: new Date(2026, 10, 5, 10, 0),
+  });
+  assert.equal(assessment.dailyTotal, 500);
+  assert.equal(assessment.intervalBlocked, true);
+  assert.equal(assessment.dailyLimitReached, false);
+  assert.equal(assessment.nextAllowedAt?.getTime(), new Date(2026, 10, 5, 12, 0).getTime());
 });

@@ -60,6 +60,7 @@ export type MediState = {
     note?: string;
     profileId?: string;
   }) => void;
+  recordPrnDose: (entry: { medicationId: string; date: string; time: string; doseAmount: number; note?: string; profileId?: string }) => void;
   clearDose: (medicationId: string, date: string, time: string) => void;
   moveSlot: (medicationId: string, date: string, fromTime: string, toTime: string) => void;
   cancelSlot: (medicationId: string, date: string, fromTime: string) => void;
@@ -183,7 +184,7 @@ export const useMedi = create<MediState>()(
       markDose: (entry) =>
         set((s) => {
           const profileId = entry.profileId ?? s.medications.find((m) => m.id === entry.medicationId)?.profileId ?? s.activeProfileId;
-          const idx = s.logs.findIndex((l) => l.medicationId === entry.medicationId && l.date === entry.date && l.time === entry.time);
+          const idx = s.logs.findIndex((l) => l.medicationId === entry.medicationId && l.date === entry.date && l.time === entry.time && l.kind !== "prn");
           const prev = idx >= 0 ? s.logs[idx] : undefined;
           const med = s.medications.find((m) => m.id === entry.medicationId);
           let medications = s.medications;
@@ -208,15 +209,41 @@ export const useMedi = create<MediState>()(
           const logs = prev ? s.logs.map((l) => (l.id === prev.id ? log : l)) : [...s.logs, log];
           return { logs, medications };
         }),
+      recordPrnDose: (entry) =>
+        set((s) => {
+          const med = s.medications.find((m) => m.id === entry.medicationId);
+          if (!med) return s;
+          const stockUnits = round2(med.unitsPerDose * entry.doseAmount / Math.max(med.doseAmount, 0.0001));
+          const log: DoseLog = {
+            id: uid(),
+            profileId: entry.profileId ?? med.profileId,
+            medicationId: med.id,
+            date: entry.date,
+            time: entry.time,
+            status: "taken_on_time",
+            actedAt: new Date().toISOString(),
+            note: entry.note,
+            kind: "prn",
+            doseAmount: entry.doseAmount,
+            doseUnit: med.doseUnit,
+            stockUnits,
+          };
+          return {
+            logs: [...s.logs, log],
+            medications: s.medications.map((item) => item.id === med.id
+              ? { ...item, stock: round2(Math.max(0, item.stock - stockUnits)), updatedAt: new Date().toISOString() }
+              : item),
+          };
+        }),
       clearDose: (medicationId, date, time) =>
         set((s) => {
-          const prev = s.logs.find((l) => l.medicationId === medicationId && l.date === date && l.time === time);
+          const prev = s.logs.find((l) => l.medicationId === medicationId && l.date === date && l.time === time && l.kind !== "prn");
           if (!prev) return s;
           const med = s.medications.find((m) => m.id === medicationId);
           let medications = s.medications;
           if (med && isTakenStatus(prev.status)) {
             medications = medications.map((m) =>
-              m.id === med.id ? { ...m, stock: round2(m.stock + med.unitsPerDose), updatedAt: new Date().toISOString() } : m,
+              m.id === med.id ? { ...m, stock: round2(m.stock + (prev.stockUnits ?? med.unitsPerDose)), updatedAt: new Date().toISOString() } : m,
             );
           }
           return { logs: s.logs.filter((l) => l.id !== prev.id), medications };

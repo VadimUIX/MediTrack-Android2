@@ -47,6 +47,10 @@ type Draft = {
   instructions: InstructionId[];
   swatch: Swatch;
   related: RelatedMed[];
+  intakeMode: "scheduled" | "prn" | "combined";
+  minIntervalMinutes: string;
+  maxDoseAmount: string;
+  maxDailyDoseAmount: string;
   times: string[];
   dayKind: Kind;
   days: number[];
@@ -86,6 +90,10 @@ function fromMed(m: Medication | undefined, today: string): Draft {
     instructions: m?.instructions ?? [],
     swatch: m?.swatch ?? "sage",
     related: m?.related ?? [],
+    intakeMode: m?.intakeMode ?? "scheduled",
+    minIntervalMinutes: String(m?.prn?.minIntervalMinutes ?? ""),
+    maxDoseAmount: String(m?.prn?.maxDoseAmount ?? ""),
+    maxDailyDoseAmount: String(m?.prn?.maxDailyDoseAmount ?? ""),
     times: m?.schedule.times?.length ? [...m.schedule.times] : ["08:00"],
     dayKind: rule?.kind ?? "daily",
     days: rule?.kind === "days" ? [...rule.days] : [1, 2, 3, 4, 5],
@@ -201,7 +209,9 @@ export function MedForm({ id }: { id?: string }) {
     const times = [...new Set(draft.times.filter(Boolean))].sort();
     if (!draft.name.trim()) nextErrors.push(tr("errName"));
     if (!(amount > 0) || !(units > 0)) nextErrors.push(tr("errDose"));
-    if (!times.length) nextErrors.push(tr("errTimes"));
+    if (draft.intakeMode !== "prn" && !times.length) nextErrors.push(tr("errTimes"));
+    if (draft.maxDoseAmount && (!(num(draft.maxDoseAmount) > 0) || num(draft.maxDoseAmount) < amount)) nextErrors.push(tr("prnMaxDoseError"));
+    if (draft.maxDailyDoseAmount && (!(num(draft.maxDailyDoseAmount) > 0) || (draft.maxDoseAmount && num(draft.maxDailyDoseAmount) < num(draft.maxDoseAmount)))) nextErrors.push(tr("prnDailyLimitError"));
     if (!draft.indefinite && draft.endDate < draft.startDate) nextErrors.push(tr("errDates"));
     if (draft.dayKind === "days" && draft.days.length === 0) nextErrors.push(tr("errDays"));
     if (draft.dayKind === "once" && !draft.onceDate) nextErrors.push(tr("errOnce"));
@@ -241,7 +251,13 @@ export function MedForm({ id }: { id?: string }) {
       instructions: draft.instructions,
       swatch: draft.swatch,
       related: draft.related.filter((r) => r.name.trim()),
-      schedule: { times, dayRule, windowMin: draft.windowMin },
+      schedule: { times: draft.intakeMode === "prn" ? [] : times, dayRule, windowMin: draft.windowMin },
+      intakeMode: draft.intakeMode,
+      prn: draft.intakeMode === "scheduled" ? undefined : {
+        minIntervalMinutes: draft.minIntervalMinutes ? Math.max(0, Math.round(num(draft.minIntervalMinutes))) : undefined,
+        maxDoseAmount: draft.maxDoseAmount ? num(draft.maxDoseAmount) : undefined,
+        maxDailyDoseAmount: draft.maxDailyDoseAmount ? num(draft.maxDailyDoseAmount) : undefined,
+      },
       critical: draft.critical,
       createdAt: existing?.createdAt ?? now,
       updatedAt: now,
@@ -462,6 +478,33 @@ export function MedForm({ id }: { id?: string }) {
         </select>
       </Field>
       <section className="grid gap-3">
+        <h2 className="font-display text-2xl">{tr("intakeModeTitle")}</h2>
+        <Field label={tr("intakeModeTitle")}>
+          <select className="field" value={draft.intakeMode} onChange={(e) => patch({ intakeMode: e.target.value as Draft["intakeMode"] })}>
+            <option value="scheduled">{tr("modeScheduled")}</option>
+            <option value="prn">{tr("modePrn")}</option>
+            <option value="combined">{tr("modeCombined")}</option>
+          </select>
+        </Field>
+        <p className="text-sm text-muted">{tr("intakeModeHint")}</p>
+        {draft.intakeMode !== "scheduled" ? (
+          <div className="grid gap-3 rounded-2xl bg-primary-soft p-3">
+            <p className="font-semibold">{tr("prnLimitsTitle")}</p>
+            <Field label={tr("prnMinInterval")}>
+              <input className="field" inputMode="numeric" value={draft.minIntervalMinutes} placeholder={tr("optional")} onChange={(e) => patch({ minIntervalMinutes: e.target.value })} />
+            </Field>
+            <Field label={tr("prnMaxDose")}>
+              <input className="field" inputMode="decimal" value={draft.maxDoseAmount} placeholder={tr("optional")} onChange={(e) => patch({ maxDoseAmount: e.target.value })} />
+            </Field>
+            <Field label={tr("prnMaxDaily")}>
+              <input className="field" inputMode="decimal" value={draft.maxDailyDoseAmount} placeholder={tr("optional")} onChange={(e) => patch({ maxDailyDoseAmount: e.target.value })} />
+            </Field>
+            <p className="text-xs text-muted">{tr("prnUnitsHint", { unit: draft.doseUnit })}</p>
+          </div>
+        ) : null}
+      </section>
+      {draft.intakeMode !== "prn" ? (
+      <section className="grid gap-3">
         <h2 className="font-display text-2xl">{tr("schedule")}</h2>
         <p className="label">{tr("presets")}</p>
         <div className="flex flex-wrap gap-2">
@@ -538,6 +581,7 @@ export function MedForm({ id }: { id?: string }) {
           </div>
         </div>
       </section>
+      ) : null}
       <section className="grid gap-2">
         <h2 className="font-display text-2xl">{tr("fieldInstructions")}</h2>
         <div className="flex flex-wrap gap-2">

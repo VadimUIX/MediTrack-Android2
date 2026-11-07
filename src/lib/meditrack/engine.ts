@@ -103,6 +103,7 @@ export function buildDay(args: {
   const away = !!(args.profile.away && args.date >= args.profile.away.from && args.date <= args.profile.away.to);
   const slots: BuiltSlot[] = [];
   for (const med of args.medications) {
+    if (med.intakeMode === "prn") continue;
     if (med.profileId !== args.profile.id) continue;
     if (!args.includeInactive && med.status !== "active") continue;
     if (args.date < med.startDate) continue;
@@ -112,7 +113,7 @@ export function buildDay(args: {
     for (const baseTime of med.schedule.times) {
       const resolved = resolveTime(baseTime, ov);
       if (resolved.cancelled) continue;
-      const log = args.logs.find((l) => l.medicationId === med.id && l.date === args.date && l.time === baseTime);
+      const log = args.logs.find((l) => l.medicationId === med.id && l.date === args.date && l.time === baseTime && l.kind !== "prn");
       const view = computeView({
         date: args.date,
         time: resolved.time,
@@ -126,6 +127,47 @@ export function buildDay(args: {
   }
   slots.sort((a, b) => a.time.localeCompare(b.time) || a.medication.name.localeCompare(b.medication.name, "ru"));
   return slots;
+}
+
+export type PrnAssessment = {
+  dailyTotal: number;
+  lastTakenAt: Date | null;
+  nextAllowedAt: Date | null;
+  intervalBlocked: boolean;
+  dailyLimitReached: boolean;
+};
+
+export function assessPrn(args: {
+  medication: Medication;
+  logs: DoseLog[];
+  profileId: string;
+  now: Date;
+}): PrnAssessment {
+  const { medication, logs, profileId, now } = args;
+  const prnLogs = logs.filter((log) =>
+    log.medicationId === medication.id &&
+    log.profileId === profileId &&
+    log.kind === "prn" &&
+    isTakenStatus(log.status),
+  );
+  const today = now.getFullYear().toString().padStart(4, "0") + "-" +
+    String(now.getMonth() + 1).padStart(2, "0") + "-" + String(now.getDate()).padStart(2, "0");
+  const todayLogs = prnLogs.filter((log) => log.date === today);
+  const dailyTotal = todayLogs.reduce((sum, log) => sum + (log.doseAmount ?? medication.doseAmount), 0);
+  const lastLog = prnLogs
+    .map((log) => ({ log, at: log.actedAt ? new Date(log.actedAt) : atDateTime(log.date, log.time) }))
+    .filter((item) => !Number.isNaN(item.at.getTime()))
+    .sort((a, b) => b.at.getTime() - a.at.getTime())[0];
+  const lastTakenAt = lastLog?.at ?? null;
+  const interval = Math.max(0, medication.prn?.minIntervalMinutes ?? 0);
+  const nextAllowedAt = lastTakenAt && interval > 0 ? new Date(lastTakenAt.getTime() + interval * 60000) : null;
+  return {
+    dailyTotal,
+    lastTakenAt,
+    nextAllowedAt,
+    intervalBlocked: !!nextAllowedAt && now.getTime() < nextAllowedAt.getTime(),
+    dailyLimitReached: medication.prn?.maxDailyDoseAmount != null && dailyTotal >= medication.prn.maxDailyDoseAmount,
+  };
 }
 
 export type Tally = {
