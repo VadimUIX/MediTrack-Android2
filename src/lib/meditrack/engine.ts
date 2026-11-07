@@ -98,12 +98,13 @@ export function buildDay(args: {
   medications: Medication[];
   logs: DoseLog[];
   overrides: ScheduleOverride[];
+  includeInactive?: boolean;
 }): BuiltSlot[] {
   const away = !!(args.profile.away && args.date >= args.profile.away.from && args.date <= args.profile.away.to);
   const slots: BuiltSlot[] = [];
   for (const med of args.medications) {
     if (med.profileId !== args.profile.id) continue;
-    if (med.status !== "active") continue;
+    if (!args.includeInactive && med.status !== "active") continue;
     if (args.date < med.startDate) continue;
     if (!med.indefinite && med.endDate && args.date > med.endDate) continue;
     if (!ruleMatches(med.schedule.dayRule, args.date)) continue;
