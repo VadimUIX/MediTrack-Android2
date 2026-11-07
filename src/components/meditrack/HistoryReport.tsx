@@ -5,7 +5,6 @@ import { dayCaption, doseText, formatLong, reasonLabel, statusLabel } from "@/li
 import { activeProfile, useMedi } from "@/lib/meditrack/store";
 import type { SlotViewStatus } from "@/lib/meditrack/types";
 import { registerPlugin } from "@capacitor/core";
-import { Search } from "lucide-react";
 import { toast } from "sonner";
 import { useMemo, useState } from "react";
 
