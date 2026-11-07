@@ -262,7 +262,7 @@ export function MedForm({ id }: { id?: string }) {
   }
 
   return (
-    <div className="grid gap-4">
+    <div className="med-form grid gap-4">
       <h1 className="font-display text-3xl">{existing ? tr("formEdit") : tr("formNew")}</h1>
       {errors.length > 0 ? (
         <div className="card" role="alert">
