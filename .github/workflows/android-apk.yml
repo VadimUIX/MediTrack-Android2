@@ -113,6 +113,7 @@ jobs:
           ANDROID_APP_KEY_PASSWORD: ${{ secrets.ANDROID_APP_KEY_PASSWORD }}
 
       - name: Prepare release APK filename
+        if: steps.signing_check.outputs.configured == 'true' && github.event_name != 'pull_request'
         id: prepare_release_apk
         run: |
           test -f android/app/build/outputs/apk/release/app-release.apk
