@@ -1,6 +1,6 @@
 import { Btn, Empty, useLang, useT } from "@/components/meditrack/ui";
 import { addDays, eachDate, todayISO } from "@/lib/meditrack/dates";
-import { buildDay, tally, type BuiltSlot } from "@/lib/meditrack/engine";
+import { buildDay, tally } from "@/lib/meditrack/engine";
 import { dayCaption, doseText, formatLong, reasonLabel, statusLabel } from "@/lib/meditrack/format";
 import { activeProfile, useMedi } from "@/lib/meditrack/store";
 import type { SlotViewStatus } from "@/lib/meditrack/types";
