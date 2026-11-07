@@ -31,7 +31,7 @@ export function History() {
       buildDay({ date, now: new Date(), profile, medications: data.medications, logs: data.logs, overrides: data.overrides, includeInactive: date <= today }),
     );
   }, [from, to, today, profile, data.medications, data.logs, data.overrides]);
-  const prnEntries = data.logs.filter((log) => log.profileId === profile.id && log.kind === "prn" && log.date >= from && log.date <= (to < from ? from : to));
+  const prnEntries = data.logs.filter((log) => log.profileId === profile.id && log.kind === "prn" && log.date >= from && log.date <= (to < from ? from : to) && (medId === "all" || log.medicationId === medId) && (!query.trim() || data.medications.find((med) => med.id === log.medicationId)?.name.toLocaleLowerCase(lang === "ru" ? "ru-RU" : "en-US").includes(query.trim().toLocaleLowerCase(lang === "ru" ? "ru-RU" : "en-US"))));
   const shown = rows
     .filter((s) => s.date < today || !!s.log || s.view === "missed")
     .filter((s) => (medId === "all" || s.medication.id === medId) && (status === "all" || s.view === status))
@@ -73,7 +73,7 @@ export function History() {
           {VIEWS.map((v) => <option key={v} value={v}>{statusLabel(lang, v)}</option>)}
         </select>
       </label>
-      {shown.length === 0 && prnEntries.length === 0 ? <Empty title={tr("emptyHistory")} /> : (
+      {shown.length > 0 ? (
         <ul className="grid gap-2">
           {shown.map((s) => (
             <li key={`${s.medication.id}-${s.date}-${s.baseTime}`} className="card">
@@ -87,7 +87,7 @@ export function History() {
             </li>
           ))}
         </ul>
-      )}
+      ) : prnEntries.length === 0 ? <Empty title={tr("emptyHistory")} /> : null}
       {prnEntries.length > 0 ? (
         <section className="grid gap-2">
           <h2 className="font-display text-2xl">{tr("prnHistoryTitle")}</h2>
