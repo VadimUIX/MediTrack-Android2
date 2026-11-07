@@ -303,6 +303,12 @@ export function Settings() {
             {[5, 10, 15, 30].map((n) => <option key={n} value={n}>{tr("minutes", { n })}</option>)}
           </select>
         </Field>
+        <Field label={tr("snoozeAfter")}>
+          <select className="field" value={notif.snoozeMin ?? 15} onChange={(e) => setNotif({ snoozeMin: Number(e.target.value) as 5 | 10 | 15 | 30 })}>
+            {[5, 10, 15, 30].map((n) => <option key={n} value={n}>{tr("minutes", { n })}</option>)}
+          </select>
+        </Field>
+        <p className="text-sm text-muted">{tr("snoozeHint")}</p>
         <Field label={tr("repeatTimes")}>
           <select className="field" value={notif.repeatCount} onChange={(e) => setNotif({ repeatCount: Number(e.target.value) })}>
             {[1, 2, 3, 5].map((n) => <option key={n} value={n}>{n}</option>)}
