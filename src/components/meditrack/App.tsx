@@ -1,4 +1,3 @@
-import { LocalNotifications } from "@capacitor/local-notifications";
 import { History, Report } from "@/components/meditrack/HistoryReport";
 import { About, Backup, Lock, More, Privacy, ProfileForm, Profiles, Settings } from "@/components/meditrack/More";
 import { MedForm } from "@/components/meditrack/MedForm";
@@ -9,7 +8,7 @@ import { Calendar } from "@/components/meditrack/Calendar";
 import { NavProvider, tabOf, useNav } from "@/components/meditrack/nav";
 import { Btn, useT } from "@/components/meditrack/ui";
 import { armAudio } from "@/components/meditrack/sound";
-import { getExactAlarmPermission, getNotifPermission, isNative, requestExactAlarmPermission, requestNotifPermission, type NotifPerm } from "@/lib/native-notify";
+import { acknowledgeDoseActions, getPendingDoseActions, getExactAlarmPermission, getNotifPermission, isNative, requestExactAlarmPermission, requestNotifPermission, type NotifPerm } from "@/lib/native-notify";
 import { takenKind } from "@/lib/meditrack/engine";
 import { useMedi } from "@/lib/meditrack/store";
 import { CalendarDays, ChevronLeft, History as HistoryIcon, Menu, Pill, House } from "lucide-react";
@@ -40,60 +39,74 @@ export function App() {
   }, []);
   useEffect(() => {
     if (!isNative()) return;
-    let removeListener: (() => void) | undefined;
     let cancelled = false;
-    const pending: Array<{ actionId: string; notification: { extra?: unknown } }> = [];
-    const applyAction = (event: { actionId: string; notification: { extra?: unknown } }) => {
-      const extra = event.notification.extra as {
-        source?: string;
-        medicationId?: string;
-        profileId?: string;
-        date?: string;
-        time?: string;
-        scheduledTime?: string;
-      } | undefined;
-      if (extra?.source !== "meditrack-dose" || !extra.medicationId || !extra.date || !extra.time) return;
-      const state = useMedi.getState();
-      const medication = state.medications.find((item) => item.id === extra.medicationId);
-      if (!medication) return;
-      if (event.actionId === "taken") {
-        const now = new Date();
-        state.markDose({
-          medicationId: medication.id,
-          profileId: extra.profileId,
-          date: extra.date,
-          time: extra.time,
-          status: takenKind(extra.date, extra.scheduledTime ?? extra.time, now, medication.schedule.windowMin),
-        });
-      } else if (event.actionId === "snooze") {
-        const snoozeMin = state.notif.snoozeMin ?? 15;
-        state.markDose({
-          medicationId: medication.id,
-          profileId: extra.profileId,
-          date: extra.date,
-          time: extra.time,
-          status: "snoozed",
-          snoozeUntil: new Date(Date.now() + snoozeMin * 60000).toISOString(),
-        });
+    let processing = false;
+
+    const drainActions = async () => {
+      if (cancelled || processing || !useMedi.persist.hasHydrated()) return;
+      processing = true;
+      try {
+        const actions = await getPendingDoseActions();
+        const acknowledged: string[] = [];
+        for (const event of actions) {
+          if (cancelled) return;
+          const state = useMedi.getState();
+          const medication = state.medications.find((item) => item.id === event.medicationId);
+          if (!medication || !event.eventId || !event.date || !event.time) {
+            if (event.eventId) acknowledged.push(event.eventId);
+            continue;
+          }
+          const actedAt = new Date(event.actedAt || Date.now());
+          if (event.actionId === "taken") {
+            state.markDose({
+              medicationId: event.medicationId,
+              profileId: event.profileId,
+              date: event.date,
+              time: event.time,
+              status: takenKind(event.date, event.scheduledTime || event.time, actedAt, medication.schedule.windowMin),
+              actedAt: actedAt.toISOString(),
+            });
+            acknowledged.push(event.eventId);
+          } else if (event.actionId === "snooze" && event.snoozeUntil) {
+            state.markDose({
+              medicationId: event.medicationId,
+              profileId: event.profileId,
+              date: event.date,
+              time: event.time,
+              status: "snoozed",
+              snoozeUntil: new Date(event.snoozeUntil).toISOString(),
+              actedAt: actedAt.toISOString(),
+            });
+            acknowledged.push(event.eventId);
+          } else {
+            acknowledged.push(event.eventId);
+          }
+        }
+        if (acknowledged.length) await acknowledgeDoseActions(acknowledged);
+      } catch (error) {
+        console.error("MediTrack could not apply native notification actions", error);
+      } finally {
+        processing = false;
       }
     };
-    const unsubscribeHydration = useMedi.persist.onFinishHydration(() => {
-      while (pending.length > 0) {
-        const event = pending.shift();
-        if (event) applyAction(event);
-      }
-    });
-    void LocalNotifications.addListener("localNotificationActionPerformed", (event) => {
-      if (useMedi.persist.hasHydrated()) applyAction(event);
-      else pending.push(event);
-    }).then((handle) => {
-      if (cancelled) void handle.remove();
-      else removeListener = () => { void handle.remove(); };
-    });
+
+    const unsubscribeHydration = useMedi.persist.onFinishHydration(() => { void drainActions(); });
+    const onResume = () => {
+      if (document.visibilityState === "visible") void drainActions();
+    };
+    window.addEventListener("focus", onResume);
+    document.addEventListener("visibilitychange", onResume);
+    const interval = window.setInterval(() => {
+      if (document.visibilityState === "visible") void drainActions();
+    }, 10000);
+    if (useMedi.persist.hasHydrated()) void drainActions();
+
     return () => {
       cancelled = true;
       unsubscribeHydration();
-      removeListener?.();
+      window.removeEventListener("focus", onResume);
+      document.removeEventListener("visibilitychange", onResume);
+      window.clearInterval(interval);
     };
   }, []);
 
