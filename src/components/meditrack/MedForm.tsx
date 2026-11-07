@@ -357,13 +357,50 @@ export function MedForm({ id }: { id?: string }) {
         />
       </Field>
       {draft.grls ? (
-        <div className="card grid gap-1" aria-label="Данные ГРЛС">
-          <p className="font-semibold">Данные из ГРЛС</p>
-          <p className="text-sm text-muted">Рег. № {draft.grls.registrationNumber} · {draft.grls.status}</p>
-          {draft.grls.inn ? <p className="text-sm">МНН: {draft.grls.inn}</p> : null}
-          {draft.grls.dosageForms ? <p className="text-sm">Формы выпуска: {draft.grls.dosageForms}</p> : null}
-          {draft.grls.expiryDate ? <p className="text-sm text-muted">Дата окончания в выгрузке: {draft.grls.expiryDate}</p> : null}
-        </div>
+        <section className="card grid gap-3" aria-label={tr("grlsCardTitle")}>
+          <h2 className="font-semibold">{tr("grlsCardTitle")}</h2>
+          <div className="grid gap-2 text-sm">
+            <p>
+              <span className="block text-muted">{tr("grlsTradeName")}</span>
+              <span className="block font-medium">{draft.name || "—"}</span>
+            </p>
+            <p>
+              <span className="block text-muted">{tr("grlsInn")}</span>
+              <span className="block font-medium">{draft.grls.inn || "—"}</span>
+            </p>
+            <p>
+              <span className="block text-muted">{tr("grlsForm")}</span>
+              <span className="block font-medium">{formLabel(lang, draft.form)}</span>
+            </p>
+            <p>
+              <span className="block text-muted">{tr("grlsDose")}</span>
+              <span className="block font-medium">
+                {draft.doseAmount} {tr(`unit_${draft.doseUnit}` as Key)}
+                {draft.doseLabel ? ` · ${draft.doseLabel}` : ""}
+              </span>
+            </p>
+            {draft.grls.dosageForms ? (
+              <p>
+                <span className="block text-muted">{tr("grlsRegistryForm")}</span>
+                <span className="block">{draft.grls.dosageForms}</span>
+              </p>
+            ) : null}
+            <p>
+              <span className="block text-muted">{tr("grlsRegNumber")}</span>
+              <span className="block font-medium">{draft.grls.registrationNumber || "—"}</span>
+            </p>
+            <p>
+              <span className="block text-muted">{tr("grlsRegStatus")}</span>
+              <span className="block font-medium">{draft.grls.status || "—"}</span>
+            </p>
+            {draft.grls.expiryDate ? (
+              <p>
+                <span className="block text-muted">{tr("grlsRegExpiry")}</span>
+                <span className="block">{draft.grls.expiryDate}</span>
+              </p>
+            ) : null}
+          </div>
+        </section>
       ) : null}
       <Field label={tr("fieldForm")}>
         <select className="field" value={draft.form} onChange={(e) => patch({ form: e.target.value as MedForm })}>
