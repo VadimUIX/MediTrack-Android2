@@ -14,6 +14,14 @@ export type MedForm =
 
 export type CourseStatus = "active" | "paused" | "completed" | "archived";
 
+export type IntakeMode = "scheduled" | "prn" | "combined";
+
+export type PrnSettings = {
+  minIntervalMinutes?: number;
+  maxDoseAmount?: number;
+  maxDailyDoseAmount?: number;
+};
+
 export type DoseStatus = "taken_on_time" | "taken_late" | "missed" | "snoozed" | "skipped";
 
 export type SlotViewStatus = DoseStatus | "upcoming" | "due" | "away";
@@ -99,6 +107,8 @@ export type Medication = {
   swatch: Swatch;
   related: RelatedMed[];
   schedule: Schedule;
+  intakeMode?: IntakeMode;
+  prn?: PrnSettings;
   critical: boolean;
   createdAt: string;
   updatedAt: string;
@@ -115,6 +125,10 @@ export type DoseLog = {
   snoozeUntil?: string;
   skipReason?: SkipReason;
   note?: string;
+  kind?: "scheduled" | "prn";
+  doseAmount?: number;
+  doseUnit?: string;
+  stockUnits?: number;
 };
 
 export type ScheduleOverride = {
