@@ -159,8 +159,14 @@ function Shell() {
         onAccept={() => {
           try {
             window.localStorage.setItem(LEGAL_ACCEPTANCE_KEY, LEGAL_ACCEPTANCE_VERSION);
-          } finally {
+            if (window.localStorage.getItem(LEGAL_ACCEPTANCE_KEY) !== LEGAL_ACCEPTANCE_VERSION) {
+              throw new Error("Consent value was not persisted");
+            }
             setTermsAccepted(true);
+            return true;
+          } catch (error) {
+            console.error("Failed to save legal consent:", error);
+            return false;
           }
         }}
       />
