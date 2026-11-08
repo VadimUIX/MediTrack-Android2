@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -158,10 +158,39 @@ jobs:
           echo "version_name=$VERSION_NAME" >> "$GITHUB_OUTPUT"
           echo "version_code=$VERSION_CODE" >> "$GITHUB_OUTPUT"
 
+      - name: Verify signed release APK and create checksum
+        if: steps.signing_check.outputs.configured == 'true' && github.event_name != 'pull_request'
+        env:
+          APK_NAME: ${{ steps.prepare_release_apk.outputs.apk_name }}
+        run: |
+          APK_PATH="android/app/build/outputs/apk/release/$APK_NAME"
+          test -f "$APK_PATH"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$APK_PATH"
+          sha256sum "$APK_PATH" > "$APK_PATH.sha256"
+
       - name: Upload signed release APK
         if: steps.signing_check.outputs.configured == 'true' && github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
           name: MediTrack-v${{ steps.prepare_release_apk.outputs.version_name }}-${{ steps.prepare_release_apk.outputs.version_code }}
-          path: android/app/build/outputs/apk/release/${{ steps.prepare_release_apk.outputs.apk_name }}
+          path: |
+            android/app/build/outputs/apk/release/${{ steps.prepare_release_apk.outputs.apk_name }}
+            android/app/build/outputs/apk/release/${{ steps.prepare_release_apk.outputs.apk_name }}.sha256
           if-no-files-found: error
+
+      - name: Publish GitHub Release
+        if: steps.signing_check.outputs.configured == 'true' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION_NAME: ${{ steps.prepare_release_apk.outputs.version_name }}
+          APK_NAME: ${{ steps.prepare_release_apk.outputs.apk_name }}
+        run: |
+          TAG="v$VERSION_NAME"
+          APK_PATH="android/app/build/outputs/apk/release/$APK_NAME"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG already exists; leaving the published release unchanged."
+          else
+            gh release create "$TAG" "$APK_PATH" "$APK_PATH.sha256" \
+              --title "MediTrack $VERSION_NAME" \
+              --notes "MediTrack $VERSION_NAME: signed Android release APK. The APK signature is verified during CI. SHA-256 checksum is attached."
+          fi
