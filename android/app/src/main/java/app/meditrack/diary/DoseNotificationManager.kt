@@ -167,14 +167,32 @@ object DoseNotificationManager {
         }
     }
 
+    /**
+     * Atomically accepts an alarm only while its ID and dose key are still present
+     * in the current schedule. AlarmManager can retain a PendingIntent after the
+     * app's data changes, so the broadcast payload alone is never trusted.
+     */
     @Synchronized
-    fun onAlarmDelivered(context: Context, id: Int) {
-        val delivered = readScheduled(context).firstOrNull { it.optInt("id") == id }
-        writeScheduled(context, readScheduled(context).filter { it.optInt("id") != id })
-        if (delivered != null) {
-            val active = readActive(context).filter { it.optInt("id") != id } + delivered
-            writeActive(context, active)
+    fun consumeScheduledAlarm(context: Context, id: Int, expectedDoseKey: String?): JSONObject? {
+        val scheduled = readScheduled(context)
+        val delivered = scheduled.firstOrNull { it.optInt("id") == id }
+        if (delivered == null || expectedDoseKey.isNullOrBlank() ||
+            delivered.optString("doseKey") != expectedDoseKey
+        ) {
+            return null
         }
+
+        writeScheduled(context, scheduled.filter { it.optInt("id") != id })
+        val active = readActive(context).filter { it.optInt("id") != id } + delivered
+        writeActive(context, active)
+        return JSONObject(delivered.toString())
+    }
+
+    @Synchronized
+    fun discardStaleAlarm(context: Context, id: Int) {
+        if (id == 0) return
+        cancelAlarm(context, id)
+        (context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).cancel(id)
     }
 
     @Synchronized
