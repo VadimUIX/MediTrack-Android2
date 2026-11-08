@@ -191,7 +191,8 @@ object DoseNotificationManager {
     @Synchronized
     fun discardStaleAlarm(context: Context, id: Int) {
         if (id == 0) return
-        cancelAlarm(context, id)
+        // The one-shot alarm has already been delivered. Do not cancel by ID here:
+        // the same ID may now belong to a newer, valid schedule entry.
         (context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).cancel(id)
     }
 
