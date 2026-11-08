@@ -1,4 +1,5 @@
 import { ProfileGlyph } from "@/components/meditrack/glyphs";
+import { PrivacyDocument, TermsModal } from "@/components/meditrack/Legal";
 import { useNav } from "@/components/meditrack/nav";
 import { Btn, Field, Modal, PinPad, useLang, useT } from "@/components/meditrack/ui";
 import { beep, armAudio } from "@/components/meditrack/sound";
@@ -174,6 +175,7 @@ export function ProfileForm({ id }: { id?: string }) {
 
 export function Settings() {
   const tr = useT();
+  const [showTerms, setShowTerms] = useState(false);
   const lang = useMedi((s) => s.lang);
   const theme = useMedi((s) => s.theme);
   const scale = useMedi((s) => s.textScale);
@@ -367,12 +369,21 @@ export function Settings() {
         )}
       </section>
       <section className="grid gap-2">
+        <h2 className="font-display text-2xl">Правовая информация</h2>
+        <button type="button" className="choice" onClick={() => setShowTerms(true)}>
+          <span className="flex-1 text-left font-semibold">Условия использования и отказ от ответственности</span>
+          <ChevronRight className="size-5 text-muted" />
+        </button>
+        <p className="text-sm text-muted">Правила использования MediTrack, ограничения напоминаний и важная медицинская информация.</p>
+      </section>
+      <section className="grid gap-2">
         <h2 className="font-display text-2xl">{tr("clearData")}</h2>
         <p className="text-muted">{tr("clearDataHint")}</p>
         {hasDemo ? <Btn variant="ghost" onClick={() => { removeDemos(); toast(tr("examplesRemoved")); }}>{tr("removeDemos")}</Btn> : null}
         {hasDemo ? <p className="text-sm text-muted">{tr("demosHint")}</p> : null}
         <Btn variant="bad" onClick={() => setWipe(1)}>{tr("clearData")}</Btn>
       </section>
+      {showTerms ? <TermsModal onClose={() => setShowTerms(false)} /> : null}
       {wipe > 0 ? (
         <Modal title={tr("clearData")} onClose={() => setWipe(0)} closeLabel={tr("close")}>
           <p>{wipe === 1 ? tr("clearConfirm") : tr("clearConfirm2")}</p>
@@ -506,10 +517,7 @@ export function Privacy() {
   return (
     <div className="grid gap-4">
       <h1 className="font-display text-3xl"><Shield className="mr-2 inline size-7" />{tr("privacyTitle")}</h1>
-      <p>{tr("privacy1")}</p>
-      <p>{tr("privacy2")}</p>
-      <p>{tr("privacy3")}</p>
-      <p>{tr("privacy4")}</p>
+      <PrivacyDocument />
     </div>
   );
 }

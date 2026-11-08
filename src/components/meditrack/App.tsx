@@ -7,6 +7,7 @@ import { Today } from "@/components/meditrack/Today";
 import { Calendar } from "@/components/meditrack/Calendar";
 import { NavProvider, tabOf, useNav } from "@/components/meditrack/nav";
 import { Btn, useT } from "@/components/meditrack/ui";
+import { LEGAL_ACCEPTANCE_KEY, LEGAL_ACCEPTANCE_VERSION, WelcomeConsent } from "@/components/meditrack/Legal";
 import { armAudio } from "@/components/meditrack/sound";
 import { acknowledgeDoseActions, getPendingDoseActions, getExactAlarmPermission, getNotifPermission, isNative, requestExactAlarmPermission, requestNotifPermission, type NotifPerm } from "@/lib/native-notify";
 import { takenKind } from "@/lib/meditrack/engine";
@@ -125,6 +126,13 @@ function Splash() {
 }
 
 function Shell() {
+  const [termsAccepted, setTermsAccepted] = useState(() => {
+    try {
+      return typeof window !== "undefined" && window.localStorage.getItem(LEGAL_ACCEPTANCE_KEY) === LEGAL_ACCEPTANCE_VERSION;
+    } catch {
+      return false;
+    }
+  });
   const pinHash = useMedi((s) => s.pinHash);
   const unlocked = useMedi((s) => s.unlocked);
   const theme = useMedi((s) => s.theme);
@@ -145,6 +153,25 @@ function Shell() {
     return () => mq.removeEventListener("change", apply);
   }, [theme, scale, lang]);
 
+  if (!termsAccepted) {
+    return (
+      <WelcomeConsent
+        onAccept={() => {
+          try {
+            window.localStorage.setItem(LEGAL_ACCEPTANCE_KEY, LEGAL_ACCEPTANCE_VERSION);
+            if (window.localStorage.getItem(LEGAL_ACCEPTANCE_KEY) !== LEGAL_ACCEPTANCE_VERSION) {
+              throw new Error("Consent value was not persisted");
+            }
+            setTermsAccepted(true);
+            return true;
+          } catch (error) {
+            console.error("Failed to save legal consent:", error);
+            return false;
+          }
+        }}
+      />
+    );
+  }
   if (pinHash && !unlocked) return <Lock />;
   return <Frame />;
 }
