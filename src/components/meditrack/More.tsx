@@ -517,6 +517,17 @@ export function Privacy() {
   return (
     <div className="grid gap-4">
       <h1 className="font-display text-3xl"><Shield className="mr-2 inline size-7" />{tr("privacyTitle")}</h1>
+      <section className="card grid gap-2">
+        <p className="text-sm text-muted">Полная версия политики конфиденциальности доступна по внешней ссылке.</p>
+        <a
+          className="font-semibold text-primary underline underline-offset-2"
+          href="https://github.com/VadimUIX/MediTrack-Android2/blob/main/docs/PRIVACY_POLICY.md"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Открыть политику конфиденциальности
+        </a>
+      </section>
       <PrivacyDocument />
     </div>
   );
