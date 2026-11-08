@@ -152,9 +152,18 @@ export function TermsModal({ onClose }: { onClose: () => void }) {
   );
 }
 
-export function WelcomeConsent({ onAccept }: { onAccept: () => void }) {
+export function WelcomeConsent({ onAccept }: { onAccept: () => boolean }) {
   const [checked, setChecked] = useState(false);
   const [showTerms, setShowTerms] = useState(false);
+  const [saveError, setSaveError] = useState(false);
+
+  const handleAccept = () => {
+    if (!onAccept()) {
+      setSaveError(true);
+      return;
+    }
+    setSaveError(false);
+  };
 
   return (
     <div className="grid min-h-dvh place-items-center bg-white px-6 py-10 text-ink">
@@ -168,7 +177,10 @@ export function WelcomeConsent({ onAccept }: { onAccept: () => void }) {
               type="checkbox"
               className="mt-1 size-5 shrink-0 accent-primary"
               checked={checked}
-              onChange={(event) => setChecked(event.target.checked)}
+              onChange={(event) => {
+                setChecked(event.target.checked);
+                setSaveError(false);
+              }}
             />
             <span className="text-sm leading-relaxed">
               Понимаю, что приложение «MediTrack» помогает организовать приём лекарств и не заменяет врача. Принимаю{" "}
@@ -185,7 +197,12 @@ export function WelcomeConsent({ onAccept }: { onAccept: () => void }) {
               </button>.
             </span>
           </label>
-          <Btn className="mt-5" block disabled={!checked} onClick={onAccept}>Принять и продолжить</Btn>
+          {saveError ? (
+            <p role="alert" className="mt-3 rounded-xl border border-red-300 bg-red-50 p-3 text-sm leading-relaxed text-red-800">
+              Не удалось сохранить согласие на этом устройстве. Проверьте, что хранилище приложения доступно, и повторите попытку. Продолжить без сохранения согласия нельзя.
+            </p>
+          ) : null}
+          <Btn className="mt-5" block disabled={!checked} onClick={handleAccept}>Принять и продолжить</Btn>
         </div>
         <p className="mt-4 text-xs text-muted">Политика конфиденциальности доступна в разделе «Ещё» → «Конфиденциальность» после принятия условий.</p>
       </div>
