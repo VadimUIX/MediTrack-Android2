@@ -69,6 +69,37 @@ jobs:
       - name: Sync Capacitor Android project
         run: npx cap sync android
 
+      - name: Build unsigned debug APK for pull requests
+        if: github.event_name == 'pull_request'
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+
+      - name: Prepare debug APK filename
+        if: github.event_name == 'pull_request'
+        id: prepare_debug_apk
+        run: |
+          test -f android/app/build/outputs/apk/debug/app-debug.apk
+          VERSION_NAME=$(sed -n 's/.*versionName "\([^"]*\)".*/\1/p' android/app/build.gradle | head -n 1)
+          VERSION_CODE=$(sed -n 's/.*versionCode \([0-9][0-9]*\).*/\1/p' android/app/build.gradle | head -n 1)
+          test -n "$VERSION_NAME"
+          test -n "$VERSION_CODE"
+          APK_NAME="MediTrack-v${VERSION_NAME}-${VERSION_CODE}-debug.apk"
+          cp android/app/build/outputs/apk/debug/app-debug.apk "android/app/build/outputs/apk/debug/$APK_NAME"
+          echo "apk_name=$APK_NAME" >> "$GITHUB_OUTPUT"
+          echo "version_name=$VERSION_NAME" >> "$GITHUB_OUTPUT"
+          echo "version_code=$VERSION_CODE" >> "$GITHUB_OUTPUT"
+
+      - name: Upload debug APK artifact
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: MediTrack-v${{ steps.prepare_debug_apk.outputs.version_name }}-${{ steps.prepare_debug_apk.outputs.version_code }}-debug
+          path: android/app/build/outputs/apk/debug/${{ steps.prepare_debug_apk.outputs.apk_name }}
+          if-no-files-found: error
+          retention-days: 14
+
       - name: Check release signing configuration
         id: signing_check
         run: |
